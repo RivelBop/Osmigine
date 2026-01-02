@@ -1,5 +1,7 @@
 # Osmigine
- A game engine built using [libGDX](https://github.com/libgdx/libgdx).
+ A game engine built using [libGDX](https://github.com/libgdx/libgdx).  
+
+These tools are built to benefit us in our game development process but we feel that it can benefit you as well!
 
 ## Generate New Project
 The following is to be done with the [gdx-liftoff](https://github.com/libgdx/gdx-liftoff) tool.  
