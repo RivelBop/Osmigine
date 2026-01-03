@@ -1,7 +1,8 @@
 # Osmigine
  A game engine built using [libGDX](https://github.com/libgdx/libgdx).  
 
-These tools are built to benefit us in our game development process but we feel that it can benefit you as well!
+These tools are built to benefit us in our game development process, but we feel that it can benefit
+you as well!
 
 ## Generate New Project
 The following is to be done with the [gdx-liftoff](https://github.com/libgdx/gdx-liftoff) tool.  
@@ -66,3 +67,7 @@ your game, make sure to:
      ```
 * Remove `configuration.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.ANGLE_GLES20, 0, 0);`
   from `Lwjgl3Launcher.java` to prevent `EGL: Failed to clear current context` error on Linux.
+
+You can now copy over the Osmigine source code into each libGDX platform module that requires it.
+For example, the lwjgl3 module has platform-specific code for precise cursor position handling via
+the `GlfwCursorProvider.java`, make sure to copy it over!
