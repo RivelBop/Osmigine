@@ -139,7 +139,7 @@ public abstract class InputTrigger {
                                          int axis);
 
     public static class Pressed extends InputTrigger {
-        public float deadZone = 0.07f;
+        public float deadZone = 0.12f;
 
         public Pressed() {
             // Intentionally empty
