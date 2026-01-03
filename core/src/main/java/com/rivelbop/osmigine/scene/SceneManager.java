@@ -38,13 +38,10 @@ public abstract class SceneManager<T> extends ManagedGame<Scene<T>, ScreenTransi
     }
 
     public final void setScene(Scene<T> scene) {
-        setScene(scene, null);
+        screenManager.pushScreen(scene, null);
     }
 
     public final void setScene(Scene<T> scene, ScreenTransition transition) {
-        scene.assets = assets;
-        scene.spriteBatch = spriteBatch;
-        scene.inputMap = inputMap;
         screenManager.pushScreen(scene, transition);
     }
 

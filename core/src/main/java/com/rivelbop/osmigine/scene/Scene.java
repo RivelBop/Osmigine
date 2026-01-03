@@ -4,16 +4,23 @@ import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.rivelbop.osmigine.input.ControllerSystem;
 import com.rivelbop.osmigine.input.InputMap;
+import com.rivelbop.osmigine.input.InputSystem;
 import de.eskalon.commons.screen.ManagedScreen;
 
 public abstract class Scene<T> extends ManagedScreen {
     public final SceneManager<T> sceneManager;
     public final float tickRate;
 
-    protected AssetManager assets;
-    protected SpriteBatch spriteBatch;
-    protected InputMap<T> inputMap;
+    // Easier access to the "necessary" parts of the SceneManager
+    protected final AssetManager assets;
+    protected final SpriteBatch spriteBatch;
+    protected final InputMap<T> inputMap;
+
+    // Private - force user to use a mapping system for better future-proofing
+    private final InputSystem inputs;
+    private final ControllerSystem controllers;
 
     private float tickTimer;
     private float alpha;
@@ -31,6 +38,14 @@ public abstract class Scene<T> extends ManagedScreen {
         } else {
             throw new IllegalArgumentException("App must be an instance of SceneManager!");
         }
+
+        assets = sceneManager.assets;
+        spriteBatch = sceneManager.spriteBatch;
+        inputMap = sceneManager.inputMap;
+
+        inputs = sceneManager.inputs;
+        controllers = sceneManager.controllers;
+
         this.tickRate = tickRate;
     }
 
@@ -48,6 +63,9 @@ public abstract class Scene<T> extends ManagedScreen {
             while (tickTimer >= tickRate) {
                 tick();
                 tickTimer -= tickRate;
+
+                inputs.postTick();
+                controllers.postTick();
             }
             alpha = tickTimer / tickRate;
         }
