@@ -3,6 +3,7 @@ package com.rivelbop.osmigine.lwjgl3;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import com.rivelbop.osmigine.Osmigine;
+import com.rivelbop.osmigine.input.GlfwCursorProvider;
 
 /** Launches the desktop (LWJGL3) application. */
 public class Lwjgl3Launcher {
@@ -12,7 +13,7 @@ public class Lwjgl3Launcher {
     }
 
     private static Lwjgl3Application createApplication() {
-        return new Lwjgl3Application(new Osmigine(), getDefaultConfiguration());
+        return new Lwjgl3Application(new Osmigine(new GlfwCursorProvider()), getDefaultConfiguration());
     }
 
     private static Lwjgl3ApplicationConfiguration getDefaultConfiguration() {

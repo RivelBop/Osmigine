@@ -1,32 +1,46 @@
 package com.rivelbop.osmigine;
 
-import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.utils.ScreenUtils;
+import com.rivelbop.osmigine.input.CursorProvider;
+import com.rivelbop.osmigine.scene.Scene;
+import com.rivelbop.osmigine.scene.SceneManager;
 
-/** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
-public class Osmigine extends ApplicationAdapter {
-    private SpriteBatch batch;
-    private Texture image;
+/** DON'T COPY THIS CLASS (EXAMPLE ONLY) - TYPICALLY ENUM USED INSTEAD OF STRING */
+public final class Osmigine extends SceneManager<String> {
+    public Osmigine() {
+        super(new CursorProvider.Default());
+    }
 
-    @Override
-    public void create() {
-        batch = new SpriteBatch();
-        image = new Texture("libgdx.png");
+    /** CALL FOR LWJGL3 */
+    public Osmigine(CursorProvider cursorProvider) {
+        super(cursorProvider);
     }
 
     @Override
-    public void render() {
-        ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
-        batch.begin();
-        batch.draw(image, 140, 210);
-        batch.end();
-    }
+    public void init() {
+        setScene(new Scene<>(1f) {
+            private final Texture texture = new Texture("libgdx.png");
 
-    @Override
-    public void dispose() {
-        batch.dispose();
-        image.dispose();
+            @Override
+            public void tick() {
+                System.out.println("TICK");
+            }
+
+            @Override
+            public void render() {
+                spriteBatch.begin();
+                spriteBatch.draw(texture, 0f, 0f);
+                spriteBatch.end();
+            }
+
+            @Override
+            public void resize(int width, int height) {
+            }
+
+            @Override
+            public void dispose() {
+                texture.dispose();
+            }
+        });
     }
 }
