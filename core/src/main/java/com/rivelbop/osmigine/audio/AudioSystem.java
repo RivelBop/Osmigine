@@ -1,12 +1,20 @@
 package com.rivelbop.osmigine.audio;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.rivelbop.osmigine.assets.Asset;
+
+import org.jaudiotagger.audio.AudioFile;
+import org.jaudiotagger.audio.AudioFileIO;
+import org.jaudiotagger.tag.TagOptionSingleton;
+
+import java.io.File;
 
 /**
  * @param <S> The SoundAsset enum.
@@ -183,6 +191,40 @@ public final class AudioSystem<S extends Enum<? extends SoundAsset>,
 
     public float getMusicVolume() {
         return musicVolume;
+    }
+
+    /**
+     * Get the duration of an audio file (wav, mp3, ogg, etc.) in seconds.
+     *
+     * @param audioFile The file handle to reference audio file data.
+     * @return The track length of the audio file (in seconds).
+     */
+    public static float getDuration(FileHandle audioFile) {
+        File tempFile = null;
+        try {
+            // Ensure Android mode is active if we are on Android
+            boolean isAndroid = Gdx.app.getType() == Application.ApplicationType.Android;
+            if (isAndroid) {
+                TagOptionSingleton.getInstance().setAndroid(true);
+            }
+
+            String extension = "." + audioFile.extension();
+            File parentDir = isAndroid ? Gdx.files.local("").file() : null;
+            tempFile = File.createTempFile("temp_audio", extension, parentDir);
+            tempFile.deleteOnExit();
+
+            audioFile.copyTo(new FileHandle(tempFile));
+
+            AudioFile audioMetadata = AudioFileIO.read(tempFile);
+            return (float) audioMetadata.getAudioHeader().getPreciseTrackLength();
+        } catch (Exception e) {
+            Gdx.app.error("AudioSystem", "Error reading metadata: " + e.getMessage());
+            return 0f;
+        } finally {
+            if (tempFile != null && tempFile.exists()) {
+                tempFile.delete();
+            }
+        }
     }
 
     @Override
