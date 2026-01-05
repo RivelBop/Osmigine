@@ -12,6 +12,9 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
     private final long durationNanos;
 
     private float volume;
+    private float masterVolume;
+    private float rawVolume;
+
     private float pitch;
     private float pan;
     private boolean isLooping;
@@ -21,13 +24,16 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
     private boolean isPaused;
     private boolean isFinished;
 
-    public SoundInstance(S soundAsset, float volume, float pitch, float pan, boolean loop,
-                         long id, float duration) {
+    public SoundInstance(S soundAsset, float volume, float masterVolume, float pitch, float pan,
+                         boolean loop, long id, float duration) {
         this.soundAsset = soundAsset;
         this.sound = soundAsset.get();
         this.id = id;
 
         this.volume = volume;
+        this.masterVolume = masterVolume;
+        this.rawVolume = volume * masterVolume;
+
         this.pitch = pitch;
         this.pan = pan;
         this.isLooping = loop;
@@ -35,6 +41,10 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
         this.duration = duration;
         this.durationNanos = (long) (duration * 1000000000L);
         this.startTime = TimeUtils.nanoTime();
+
+        if (id == -1) {
+            isFinished = true;
+        }
     }
 
     public void update() {
@@ -84,6 +94,7 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
         sound.stop(id);
     }
 
+    /** Set the relative volume. */
     public void setVolume(float newVolume) {
         if (isFinished || newVolume < AudioSystem.FULL_VOLUME_RANGE[0] ||
                 newVolume > AudioSystem.FULL_VOLUME_RANGE[1]) {
@@ -91,7 +102,20 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
         }
 
         volume = newVolume;
-        sound.setVolume(id, volume);
+        rawVolume = volume * masterVolume;
+        sound.setVolume(id, rawVolume);
+    }
+
+    /** Set the master volume. */
+    public void setMasterVolume(float newVolume) {
+        if (isFinished || newVolume < AudioSystem.FULL_VOLUME_RANGE[0] ||
+                newVolume > AudioSystem.FULL_VOLUME_RANGE[1]) {
+            return;
+        }
+
+        masterVolume = newVolume;
+        rawVolume = volume * masterVolume;
+        sound.setVolume(id, rawVolume);
     }
 
     public void setPitch(float newPitch) {
@@ -120,7 +144,7 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
         }
 
         pan = newPan;
-        sound.setPan(id, pan, volume);
+        sound.setPan(id, pan, rawVolume);
     }
 
     public void setLooping(boolean loop) {
@@ -134,6 +158,14 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
 
     public float getVolume() {
         return volume;
+    }
+
+    public float getMasterVolume() {
+        return masterVolume;
+    }
+
+    public float getRawVolume() {
+        return rawVolume;
     }
 
     public float getPitch() {
