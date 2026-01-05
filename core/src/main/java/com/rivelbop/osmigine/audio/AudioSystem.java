@@ -63,17 +63,17 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
         musicDurationMap = new EnumMap<>(musicClass);
 
         setHearRange(hearRange);
-        load();
+        loadPreferences();
     }
 
-    public void save() {
+    public void savePreferences() {
         preferences.putFloat(MASTER_VOLUME_PREF, masterVolume);
         preferences.putFloat(SOUND_VOLUME_PREF, soundVolume);
         preferences.putFloat(MUSIC_VOLUME_PREF, musicVolume);
         preferences.flush();
     }
 
-    public void load() {
+    public void loadPreferences() {
         masterVolume = preferences.getFloat(MASTER_VOLUME_PREF, FULL_VOLUME_RANGE[1]);
         soundVolume = preferences.getFloat(SOUND_VOLUME_PREF, FULL_VOLUME_RANGE[1]);
         musicVolume = preferences.getFloat(MUSIC_VOLUME_PREF, FULL_VOLUME_RANGE[1]);
@@ -82,22 +82,22 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
         currentMusicVolume = masterVolume * musicVolume;
     }
 
-    public long play(S sound) {
+    public long playSound(S sound) {
         return sound.get().play(currentSoundVolume);
     }
 
-    public long play(S sound, float volume) {
+    public long playSound(S sound, float volume) {
         volume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         return sound.get().play(currentSoundVolume * volume);
     }
 
-    public long play(S sound, float volume, float pitch) {
+    public long playSound(S sound, float volume, float pitch) {
         volume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         pitch = MathUtils.clamp(pitch, FULL_PITCH_RANGE[0], FULL_PITCH_RANGE[1]);
         return sound.get().play(currentSoundVolume * volume, pitch, DEFAULT_PAN);
     }
 
-    public long play(S sound, float volume, float pitch, float pan) {
+    public long playSound(S sound, float volume, float pitch, float pan) {
         volume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         pitch = MathUtils.clamp(pitch, FULL_PITCH_RANGE[0], FULL_PITCH_RANGE[1]);
         pan = MathUtils.clamp(pan, FULL_PAN_RANGE[0], FULL_PAN_RANGE[1]);
@@ -112,48 +112,48 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
         this.hearRange = Math.abs(hearRange);
     }
 
-    public long playAt(Vector2 position, S sound) {
-        return playAt(position, sound, FULL_VOLUME_RANGE[1], DEFAULT_PITCH);
+    public long playSoundAt(Vector2 position, S sound) {
+        return playSoundAt(position, sound, FULL_VOLUME_RANGE[1], DEFAULT_PITCH);
     }
 
-    public long playAt(Vector2 position, S sound, float volume) {
-        return playAt(position, sound, volume, DEFAULT_PITCH);
+    public long playSoundAt(Vector2 position, S sound, float volume) {
+        return playSoundAt(position, sound, volume, DEFAULT_PITCH);
     }
 
-    public long playAt(Vector2 position, S sound, float volume, float pitch) {
+    public long playSoundAt(Vector2 position, S sound, float volume, float pitch) {
         float pos2 = soundListenerPosition.dst2(position);
         float hearRange2 = hearRange * hearRange;
 
         if (pos2 <= hearRange2) {
             float distance = (float) Math.sqrt(pos2);
             volume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
-            return play(sound, (FULL_VOLUME_RANGE[1] - (distance / hearRange)) * volume, pitch,
+            return playSound(sound, (FULL_VOLUME_RANGE[1] - (distance / hearRange)) * volume, pitch,
                     (position.x - soundListenerPosition.x) / (hearRange / 2f));
         }
         return INVALID_SOUND_ID;
     }
 
-    public void pause(S sound) {
+    public void pauseSound(S sound) {
         sound.get().pause();
     }
 
-    public void pause(S sound, long soundId) {
+    public void pauseSound(S sound, long soundId) {
         sound.get().pause(soundId);
     }
 
-    public void resume(S sound) {
+    public void resumeSound(S sound) {
         sound.get().resume();
     }
 
-    public void resume(S sound, long soundId) {
+    public void resumeSound(S sound, long soundId) {
         sound.get().resume(soundId);
     }
 
-    public void stop(S sound) {
+    public void stopSound(S sound) {
         sound.get().stop();
     }
 
-    public void stop(S sound, long soundId) {
+    public void stopSound(S sound, long soundId) {
         sound.get().stop(soundId);
     }
 
