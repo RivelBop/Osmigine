@@ -9,6 +9,7 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
     public final float duration;
     public final long id;
 
+    private final long durationNanos;
     private long startTime;
     private long pauseTime;
     private boolean isPaused;
@@ -21,6 +22,8 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
         this.id = id;
 
         this.duration = duration;
+        this.durationNanos = (long) (duration * 1000000000L);
+
         this.isLooping = isLooping;
         this.startTime = TimeUtils.nanoTime();
     }
@@ -30,10 +33,10 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
             return;
         }
 
-        float elapsed = TimeUtils.timeSinceNanos(startTime) / 1000000000f;
-        if (elapsed >= duration) {
+        long elapsed = TimeUtils.timeSinceNanos(startTime);
+        if (elapsed >= durationNanos) {
             isFinished = !isLooping;
-            startTime = TimeUtils.nanoTime() - ((long) (elapsed - duration)) * 1000000000L;
+            startTime = TimeUtils.nanoTime() - (elapsed - durationNanos);
         }
     }
 
