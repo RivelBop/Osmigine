@@ -147,28 +147,22 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
         return INVALID_SOUND_ID;
     }
 
-    public void pauseSound(S sound) {
-        sound.get().pause();
+    public void pauseAllSounds(S sound) {
+        for (S s : soundClass.getEnumConstants()) {
+            s.get().pause();
+        }
     }
 
-    public void pauseSound(S sound, long soundId) {
-        sound.get().pause(soundId);
+    public void resumeAllSounds(S sound) {
+        for (S s : soundClass.getEnumConstants()) {
+            s.get().resume();
+        }
     }
 
-    public void resumeSound(S sound) {
-        sound.get().resume();
-    }
-
-    public void resumeSound(S sound, long soundId) {
-        sound.get().resume(soundId);
-    }
-
-    public void stopSound(S sound) {
-        sound.get().stop();
-    }
-
-    public void stopSound(S sound, long soundId) {
-        sound.get().stop(soundId);
+    public void stopAllSounds(S sound) {
+        for (S s : soundClass.getEnumConstants()) {
+            s.get().stop();
+        }
     }
 
     public void playMusic(M music, boolean loop) {
