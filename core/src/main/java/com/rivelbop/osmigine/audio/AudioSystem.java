@@ -83,25 +83,39 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
     }
 
     public long playSound(S sound) {
-        return sound.get().play(currentSoundVolume);
+        return playSound(sound, FULL_VOLUME_RANGE[1], DEFAULT_PITCH, DEFAULT_PAN, false);
+    }
+
+    public long playSound(S sound, boolean loop) {
+        return playSound(sound, FULL_VOLUME_RANGE[1], DEFAULT_PITCH, DEFAULT_PAN, loop);
     }
 
     public long playSound(S sound, float volume) {
-        volume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
-        return sound.get().play(currentSoundVolume * volume);
+        return playSound(sound, volume, DEFAULT_PITCH, DEFAULT_PAN, false);
+    }
+
+    public long playSound(S sound, float volume, boolean loop) {
+        return playSound(sound, volume, DEFAULT_PITCH, DEFAULT_PAN, loop);
     }
 
     public long playSound(S sound, float volume, float pitch) {
-        volume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
-        pitch = MathUtils.clamp(pitch, FULL_PITCH_RANGE[0], FULL_PITCH_RANGE[1]);
-        return sound.get().play(currentSoundVolume * volume, pitch, DEFAULT_PAN);
+        return playSound(sound, volume, pitch, DEFAULT_PAN, false);
+    }
+
+    public long playSound(S sound, float volume, float pitch, boolean loop) {
+        return playSound(sound, volume, pitch, DEFAULT_PAN, loop);
     }
 
     public long playSound(S sound, float volume, float pitch, float pan) {
+        return playSound(sound, volume, pitch, pan, false);
+    }
+
+    public long playSound(S sound, float volume, float pitch, float pan, boolean loop) {
         volume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         pitch = MathUtils.clamp(pitch, FULL_PITCH_RANGE[0], FULL_PITCH_RANGE[1]);
         pan = MathUtils.clamp(pan, FULL_PAN_RANGE[0], FULL_PAN_RANGE[1]);
-        return sound.get().play(currentSoundVolume * volume, pitch, pan);
+        return loop ? sound.get().loop(currentSoundVolume * volume, pitch, pan) :
+                sound.get().play(currentSoundVolume * volume, pitch, pan);
     }
 
     public void setSoundListenerPosition(Vector2 position) {
@@ -127,8 +141,8 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
         if (pos2 <= hearRange2) {
             float distance = (float) Math.sqrt(pos2);
             volume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
-            return playSound(sound, (FULL_VOLUME_RANGE[1] - (distance / hearRange)) * volume, pitch,
-                    (position.x - soundListenerPosition.x) / (hearRange / 2f));
+            return playSound(sound, (FULL_VOLUME_RANGE[1] - (distance / hearRange)) * volume,
+                    pitch, (position.x - soundListenerPosition.x) / (hearRange / 2f));
         }
         return INVALID_SOUND_ID;
     }
