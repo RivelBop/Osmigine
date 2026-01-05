@@ -15,13 +15,15 @@ import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.TagOptionSingleton;
 
 import java.io.File;
+import java.util.EnumMap;
+import java.util.Map;
 
 /**
  * @param <S> The SoundAsset enum.
  * @param <M> The MusicAsset enum.
  */
-public final class AudioSystem<S extends Enum<? extends SoundAsset>,
-        M extends Enum<? extends MusicAsset>> implements Asset {
+public final class AudioSystem<S extends Enum<S> & SoundAsset,
+        M extends Enum<M> & MusicAsset> implements Asset {
     public static final long INVALID_SOUND_ID = -1;
     public static final float[] FULL_VOLUME_RANGE = {0f, 1f};
     public static final float[] FULL_PITCH_RANGE = {0.5f, 2f};
@@ -31,10 +33,16 @@ public final class AudioSystem<S extends Enum<? extends SoundAsset>,
     public static final float DEFAULT_PITCH = 1f;
     public static final float DEFAULT_PAN = 0f;
 
-    private static final String MASTER_VOLUME_PREF = "masterVolume";
-    private static final String SOUND_VOLUME_PREF = "soundVolume";
-    private static final String MUSIC_VOLUME_PREF = "musicVolume";
+    public static final String MASTER_VOLUME_PREF = "masterVolume";
+    public static final String SOUND_VOLUME_PREF = "soundVolume";
+    public static final String MUSIC_VOLUME_PREF = "musicVolume";
     private final Preferences preferences = Gdx.app.getPreferences(getClass().getCanonicalName());
+
+    // Used for loading to/from assets
+    private final Class<S> soundClass;
+    private final Class<M> musicClass;
+    private final Map<S, Float> soundDurationMap;
+    private final Map<M, Float> musicDurationMap;
 
     private final Vector2 soundListenerPosition = new Vector2();
     private float hearRange;
@@ -47,13 +55,12 @@ public final class AudioSystem<S extends Enum<? extends SoundAsset>,
     private float currentSoundVolume;
     private float currentMusicVolume;
 
-    // Used for loading to/from assets
-    private final Class<S> soundClass;
-    private final Class<M> musicClass;
-
     public AudioSystem(Class<S> soundClass, Class<M> musicClass, float hearRange) {
         this.soundClass = soundClass;
         this.musicClass = musicClass;
+
+        soundDurationMap = new EnumMap<>(soundClass);
+        musicDurationMap = new EnumMap<>(musicClass);
 
         setHearRange(hearRange);
         load();
@@ -76,25 +83,25 @@ public final class AudioSystem<S extends Enum<? extends SoundAsset>,
     }
 
     public long play(S sound) {
-        return ((SoundAsset) sound).get().play(currentSoundVolume);
+        return sound.get().play(currentSoundVolume);
     }
 
     public long play(S sound, float volume) {
         volume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
-        return ((SoundAsset) sound).get().play(currentSoundVolume * volume);
+        return sound.get().play(currentSoundVolume * volume);
     }
 
     public long play(S sound, float volume, float pitch) {
         volume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         pitch = MathUtils.clamp(pitch, FULL_PITCH_RANGE[0], FULL_PITCH_RANGE[1]);
-        return ((SoundAsset) sound).get().play(currentSoundVolume * volume, pitch, DEFAULT_PAN);
+        return sound.get().play(currentSoundVolume * volume, pitch, DEFAULT_PAN);
     }
 
     public long play(S sound, float volume, float pitch, float pan) {
         volume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         pitch = MathUtils.clamp(pitch, FULL_PITCH_RANGE[0], FULL_PITCH_RANGE[1]);
         pan = MathUtils.clamp(pan, FULL_PAN_RANGE[0], FULL_PAN_RANGE[1]);
-        return ((SoundAsset) sound).get().play(currentSoundVolume * volume, pitch, pan);
+        return sound.get().play(currentSoundVolume * volume, pitch, pan);
     }
 
     public void setSoundListenerPosition(Vector2 position) {
@@ -127,31 +134,31 @@ public final class AudioSystem<S extends Enum<? extends SoundAsset>,
     }
 
     public void pause(S sound) {
-        ((SoundAsset) sound).get().pause();
+        sound.get().pause();
     }
 
     public void pause(S sound, long soundId) {
-        ((SoundAsset) sound).get().pause(soundId);
+        sound.get().pause(soundId);
     }
 
     public void resume(S sound) {
-        ((SoundAsset) sound).get().resume();
+        sound.get().resume();
     }
 
     public void resume(S sound, long soundId) {
-        ((SoundAsset) sound).get().resume(soundId);
+        sound.get().resume(soundId);
     }
 
     public void stop(S sound) {
-        ((SoundAsset) sound).get().stop();
+        sound.get().stop();
     }
 
     public void stop(S sound, long soundId) {
-        ((SoundAsset) sound).get().stop(soundId);
+        sound.get().stop(soundId);
     }
 
     public void playMusic(M music, boolean loop) {
-        Music track = ((MusicAsset) music).get();
+        Music track = music.get();
         track.setLooping(loop);
         track.setVolume(currentMusicVolume);
         track.play();
@@ -173,8 +180,24 @@ public final class AudioSystem<S extends Enum<? extends SoundAsset>,
         currentMusicVolume = masterVolume * musicVolume;
     }
 
-    public Preferences getPreferences() {
-        return preferences;
+    public float getSoundDuration(S sound) {
+        return soundDurationMap.get(sound);
+    }
+
+    public Map<S, Float> getSoundDurationMap() {
+        return soundDurationMap;
+    }
+
+    public float getMusicDuration(M music) {
+        return musicDurationMap.get(music);
+    }
+
+    public Map<M, Float> getMusicDurationMap() {
+        return musicDurationMap;
+    }
+
+    public Vector2 getSoundListenerPosition() {
+        return soundListenerPosition;
     }
 
     public float getHearRange() {
@@ -191,6 +214,10 @@ public final class AudioSystem<S extends Enum<? extends SoundAsset>,
 
     public float getMusicVolume() {
         return musicVolume;
+    }
+
+    public Preferences getPreferences() {
+        return preferences;
     }
 
     /**
@@ -230,20 +257,22 @@ public final class AudioSystem<S extends Enum<? extends SoundAsset>,
     @Override
     public void loadToAssets(AssetManager assets) {
         for (S sound : soundClass.getEnumConstants()) {
-            ((SoundAsset) sound).loadToAssets(assets);
+            sound.loadToAssets(assets);
+            soundDurationMap.put(sound, sound.duration());
         }
         for (M music : musicClass.getEnumConstants()) {
-            ((MusicAsset) music).loadToAssets(assets);
+            music.loadToAssets(assets);
+            musicDurationMap.put(music, music.duration());
         }
     }
 
     @Override
     public void loadFromAssets(AssetManager assets) {
         for (S sound : soundClass.getEnumConstants()) {
-            ((SoundAsset) sound).loadFromAssets(assets);
+            sound.loadFromAssets(assets);
         }
         for (M music : musicClass.getEnumConstants()) {
-            ((MusicAsset) music).loadFromAssets(assets);
+            music.loadFromAssets(assets);
         }
     }
 }
