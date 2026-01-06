@@ -42,7 +42,7 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
         this.durationNanos = (long) (duration * 1000000000L);
         this.startTime = TimeUtils.nanoTime();
 
-        if (sound == NullSound.INSTANCE || id == -1) {
+        if (sound == NullSound.INSTANCE || id == AudioSystem.INVALID_SOUND_ID) {
             isFinished = true;
         }
     }

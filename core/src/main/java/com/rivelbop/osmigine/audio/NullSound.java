@@ -2,6 +2,8 @@ package com.rivelbop.osmigine.audio;
 
 import com.badlogic.gdx.audio.Sound;
 
+import static com.rivelbop.osmigine.audio.AudioSystem.INVALID_SOUND_ID;
+
 public final class NullSound implements Sound {
     public static final NullSound INSTANCE = new NullSound();
 
@@ -10,32 +12,32 @@ public final class NullSound implements Sound {
 
     @Override
     public long play() {
-        return -1L;
+        return INVALID_SOUND_ID;
     }
 
     @Override
     public long play(float volume) {
-        return -1L;
+        return INVALID_SOUND_ID;
     }
 
     @Override
     public long play(float volume, float pitch, float pan) {
-        return -1L;
+        return INVALID_SOUND_ID;
     }
 
     @Override
     public long loop() {
-        return -1L;
+        return INVALID_SOUND_ID;
     }
 
     @Override
     public long loop(float volume) {
-        return -1L;
+        return INVALID_SOUND_ID;
     }
 
     @Override
     public long loop(float volume, float pitch, float pan) {
-        return -1L;
+        return INVALID_SOUND_ID;
     }
 
     @Override
