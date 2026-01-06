@@ -27,7 +27,7 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
     public SoundInstance(S soundAsset, float volume, float masterVolume, float pitch, float pan,
                          boolean loop, long id, float duration) {
         this.soundAsset = soundAsset;
-        this.sound = soundAsset.get();
+        this.sound = soundAsset != null ? soundAsset.get() : NullSound.INSTANCE;
         this.id = id;
 
         this.volume = volume;
@@ -42,7 +42,7 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
         this.durationNanos = (long) (duration * 1000000000L);
         this.startTime = TimeUtils.nanoTime();
 
-        if (id == -1) {
+        if (sound == NullSound.INSTANCE || id == -1) {
             isFinished = true;
         }
     }
@@ -154,6 +154,20 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
 
         isLooping = loop;
         sound.setLooping(id, loop);
+    }
+
+    // NO GETTER FOR ID (TO AVOID DIRECTLY CALLING METHODS FROM THEM)
+
+    public S getSoundAsset() {
+        return soundAsset;
+    }
+
+    public Sound getSound() {
+        return sound;
+    }
+
+    public float getDuration() {
+        return duration;
     }
 
     public float getVolume() {
