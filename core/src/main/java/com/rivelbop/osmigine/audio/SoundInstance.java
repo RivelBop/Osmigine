@@ -211,20 +211,6 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
         }
     }
 
-    // NO GETTER FOR ID (TO AVOID DIRECTLY CALLING METHODS FROM THEM)
-
-    public S getSoundAsset() {
-        return soundAsset;
-    }
-
-    public Sound getSound() {
-        return sound;
-    }
-
-    public float getDuration() {
-        return duration;
-    }
-
     public float getRelativeVolume() {
         return relativeVolume;
     }
