@@ -92,7 +92,7 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
     }
 
     /** MUST BE CALLED FOR PROPER SOUND HANDLING */
-    public void update() {
+    public void postRender() {
         for (int i = activeSoundInstances.size - 1; i > -1; i--) {
             SoundInstance<S> instance = activeSoundInstances.get(i);
             instance.update();
