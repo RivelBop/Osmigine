@@ -47,82 +47,100 @@ public final class MusicInstance <M extends Enum<M> & MusicAsset> implements Mus
     }
 
     public void pause() {
-        if (isPaused || isFinished || !isActive) {
+        if (isPaused || isFinished) {
             return;
         }
 
         isPaused = true;
-        position = music.getPosition();
-        music.pause();
+        if (isActive) {
+            position = music.getPosition();
+            music.pause();
+        }
     }
 
     public void resume() {
-        if (!isPaused || isFinished || !isActive) {
+        if (!isPaused || isFinished) {
             return;
         }
 
         isPaused = false;
-        music.play();
+        if (isActive) {
+            music.play();
+        }
     }
 
     public void stop() {
-        if (isFinished || !isActive) {
+        if (isFinished) {
             return;
         }
 
         isFinished = true;
-        music.stop();
+        if (isActive) {
+            music.stop();
+        }
     }
 
     public void setRelativeVolume(float newVolume) {
-        if (isFinished || !isActive) {
+        if (isFinished) {
             return;
         }
 
         newVolume = MathUtils.clamp(newVolume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         relativeVolume = newVolume;
         rawVolume = relativeVolume * masterVolume;
-        music.setVolume(rawVolume);
+        if (isActive) {
+            music.setVolume(rawVolume);
+        }
     }
 
     public void setMasterVolume(float newVolume) {
-        if (isFinished || !isActive) {
+        if (isFinished) {
             return;
         }
 
         newVolume = MathUtils.clamp(newVolume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         masterVolume = newVolume;
         rawVolume = relativeVolume * masterVolume;
-        music.setVolume(rawVolume);
+        if (isActive) {
+            music.setVolume(rawVolume);
+        }
     }
 
     public void setPan(float newPan) {
-        if (isFinished || !isActive) {
+        if (isFinished) {
             return;
         }
 
         newPan = MathUtils.clamp(newPan, FULL_PAN_RANGE[0], FULL_PAN_RANGE[1]);
         pan = newPan;
-        music.setPan(pan, rawVolume);
+        if (isActive) {
+            music.setPan(pan, rawVolume);
+        }
     }
 
     public void setLooping(boolean loop) {
-        if (isFinished || !isActive) {
+        if (isFinished) {
             return;
         }
 
         isLooping = loop;
-        music.setLooping(isLooping);
+        if (isActive) {
+            music.setLooping(isLooping);
+        }
     }
 
     public void setPosition(float position) {
-        if (isFinished || !isActive) {
+        if (isFinished) {
             return;
         }
 
         position = MathUtils.clamp(position, 0f, duration);
-        music.setPosition(position);
-        this.position = music.getPosition();
+        if (isActive) {
+            music.setPosition(position);
+            this.position = music.getPosition();
+        } else {
+            this.position = position;
+        }
     }
 
     /** Default to only be accessible by the AudioSystem */
@@ -131,12 +149,17 @@ public final class MusicInstance <M extends Enum<M> & MusicAsset> implements Mus
         isActive = active;
 
         if (wasChanged && isActive) {
+            if (isFinished) {
+                music.stop();
+                return;
+            }
+
             music.setPosition(position);
             music.setPan(pan, rawVolume);
             music.setLooping(isLooping);
-
             music.setOnCompletionListener(this);
-            if (!isFinished && !isPaused) {
+
+            if (!isPaused) {
                 music.play();
             }
         } else if (wasChanged) {
