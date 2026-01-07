@@ -4,7 +4,6 @@ import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.assets.AssetManager;
-import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
@@ -14,9 +13,11 @@ import com.rivelbop.osmigine.assets.Asset;
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.TagOptionSingleton;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.util.EnumMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -65,6 +66,8 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
     private float currentSoundVolume = FULL_VOLUME_RANGE[1];
     private float currentMusicVolume = FULL_VOLUME_RANGE[1];
 
+    private final LinkedList<MusicInstance<M>> musicQueue = new LinkedList<>();
+
     public AudioSystem(Class<S> soundClass, Class<M> musicClass, float hearRange) {
         this.soundClass = soundClass;
         this.musicClass = musicClass;
@@ -91,8 +94,10 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
         setMusicVolume(musicVolume);
     }
 
-    /** MUST BE CALLED FOR PROPER SOUND HANDLING */
+    /** MUST BE CALLED FOR PROPER SOUND AND MUSIC HANDLING */
     public void postRender() {
+        updateMusicQueue();
+
         for (int i = activeSoundInstances.size - 1; i > -1; i--) {
             SoundInstance<S> instance = activeSoundInstances.get(i);
             instance.update();
@@ -114,6 +119,32 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
             if (instance.positionUpdated) {
                 updatePositionalSoundInstance(instance);
             }
+        }
+    }
+
+    public void updateMusicQueue() {
+        if (musicQueue.isEmpty()) {
+            return;
+        }
+
+        MusicInstance<M> current = musicQueue.peekFirst();
+        if (!current.isActive()) {
+            current.setMasterVolume(currentMusicVolume);
+            current.setActive(true);
+        }
+
+        if (current.isFinished()) {
+            current.setActive(false);
+            musicQueue.removeFirst();
+
+            if (!musicQueue.isEmpty()) {
+                current = musicQueue.peekFirst();
+                current.setMasterVolume(currentMusicVolume);
+                current.setActive(true);
+                current.update();
+            }
+        } else {
+            current.update();
         }
     }
 
@@ -288,13 +319,137 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
         activePositionalSoundInstances.clear();
     }
 
-    // TODO: More robust music system
-    public Music playMusic(M music, boolean loop) {
-        Music track = music.get();
-        track.setLooping(loop);
-        track.setVolume(currentMusicVolume);
-        track.play();
-        return track;
+    public MusicInstance<M> playMusic(M music) {
+        return playMusic(music, FULL_VOLUME_RANGE[1], DEFAULT_PAN, false);
+    }
+
+    public MusicInstance<M> playMusic(M music, boolean loop) {
+        return playMusic(music, FULL_VOLUME_RANGE[1], DEFAULT_PAN, loop);
+    }
+
+    public MusicInstance<M> playMusic(M music, float volume) {
+        return playMusic(music, volume, DEFAULT_PAN, false);
+    }
+
+    public MusicInstance<M> playMusic(M music, float volume, boolean loop) {
+        return playMusic(music, volume, DEFAULT_PAN, loop);
+    }
+
+    public MusicInstance<M> playMusic(M music, float volume, float pan) {
+        return playMusic(music, volume, pan, false);
+    }
+
+    /** Overrides the currently playing track, if none, queues and plays the provided track */
+    public MusicInstance<M> playMusic(M music, float volume, float pan, boolean loop) {
+        if (!musicQueue.isEmpty()) {
+            musicQueue.peekFirst().stop();
+        }
+        return queueNextMusic(music, volume, pan, loop);
+    }
+
+    public MusicInstance<M> queueNextMusic(M music) {
+        return queueNextMusic(music, FULL_VOLUME_RANGE[1], DEFAULT_PAN, false);
+    }
+
+    public MusicInstance<M> queueNextMusic(M music, boolean loop) {
+        return queueNextMusic(music, FULL_VOLUME_RANGE[1], DEFAULT_PAN, loop);
+    }
+
+    public MusicInstance<M> queueNextMusic(M music, float volume) {
+        return queueNextMusic(music, volume, DEFAULT_PAN, false);
+    }
+
+    public MusicInstance<M> queueNextMusic(M music, float volume, boolean loop) {
+        return queueNextMusic(music, volume, DEFAULT_PAN, loop);
+    }
+
+    public MusicInstance<M> queueNextMusic(M music, float volume, float pan) {
+        return queueNextMusic(music, volume, pan, false);
+    }
+
+    /** Queues the next track that will play after the current is done */
+    public MusicInstance<M> queueNextMusic(M music, float volume, float pan, boolean loop) {
+        MusicInstance<M> instance = new MusicInstance<>(music, volume, currentMusicVolume, pan,
+                loop, musicDurationMap.get(music));
+
+        if (musicQueue.isEmpty()) {
+            musicQueue.addFirst(instance);
+        } else {
+            musicQueue.add(1, instance);
+        }
+
+        updateMusicQueue();
+        return instance;
+    }
+
+    public MusicInstance<M> queueMusic(M music) {
+        return queueMusic(music, FULL_VOLUME_RANGE[1], DEFAULT_PAN, false);
+    }
+
+    public MusicInstance<M> queueMusic(M music, boolean loop) {
+        return queueMusic(music, FULL_VOLUME_RANGE[1], DEFAULT_PAN, loop);
+    }
+
+    public MusicInstance<M> queueMusic(M music, float volume) {
+        return queueMusic(music, volume, DEFAULT_PAN, false);
+    }
+
+    public MusicInstance<M> queueMusic(M music, float volume, boolean loop) {
+        return queueMusic(music, volume, DEFAULT_PAN, loop);
+    }
+
+    public MusicInstance<M> queueMusic(M music, float volume, float pan) {
+        return queueMusic(music, volume, pan, false);
+    }
+
+    /** Queues the track that will play after all currently queued tracks are complete */
+    public MusicInstance<M> queueMusic(M music, float volume, float pan, boolean loop) {
+        MusicInstance<M> instance = new MusicInstance<>(music, volume, currentMusicVolume, pan,
+                loop, musicDurationMap.get(music));
+
+        musicQueue.addLast(instance);
+        updateMusicQueue();
+        return instance;
+    }
+
+    /** Skips the currently playing track */
+    public void skipMusic() {
+        if (!musicQueue.isEmpty()) {
+            musicQueue.peekFirst().stop();
+            updateMusicQueue();
+        }
+    }
+
+    /** Skips the currently playing track */
+    public void playNextMusic() {
+        skipMusic();
+    }
+
+    /** Stops and deactivates the current track and clears the entire queue */
+    public void clearMusicQueue() {
+        if (!musicQueue.isEmpty()) {
+            MusicInstance<M> current = musicQueue.peekFirst();
+            current.setActive(false);
+            current.stop();
+            musicQueue.clear();
+        }
+    }
+
+    public void pauseMusic() {
+        if (!musicQueue.isEmpty()) {
+            musicQueue.peekFirst().pause();
+        }
+    }
+
+    public void resumeMusic() {
+        if (!musicQueue.isEmpty()) {
+            musicQueue.peekFirst().resume();
+        }
+    }
+
+    /** Stops and deactivates the current track and clears the entire queue */
+    public void stopMusic() {
+        clearMusicQueue();
     }
 
     public void setMasterVolume(float volume) {
@@ -305,8 +460,8 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
         for (SoundInstance<S> instance : activeSoundInstances) {
             instance.setMasterVolume(currentSoundVolume);
         }
-        for (M asset : musicClass.getEnumConstants()) {
-            asset.get().setVolume(currentMusicVolume);
+        if (!musicQueue.isEmpty()) {
+            musicQueue.peekFirst().setMasterVolume(currentMusicVolume);
         }
     }
 
@@ -321,8 +476,8 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
     public void setMusicVolume(float volume) {
         musicVolume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         currentMusicVolume = masterVolume * musicVolume;
-        for (M asset : musicClass.getEnumConstants()) {
-            asset.get().setVolume(currentMusicVolume);
+        if (!musicQueue.isEmpty()) {
+            musicQueue.peekFirst().setMasterVolume(currentMusicVolume);
         }
     }
 
@@ -334,6 +489,16 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
     /** DO NOT ALTER, GETTER ONLY */
     public Array<SoundInstance<S>> getActivePositionalSoundInstances() {
         return activePositionalSoundInstances;
+    }
+
+    @Nullable
+    public MusicInstance<M> getCurrentMusic() {
+        return musicQueue.peekFirst();
+    }
+
+    /** DO NOT ALTER, GETTER ONLY */
+    public LinkedList<MusicInstance<M>> getMusicQueue() {
+        return musicQueue;
     }
 
     public float getSoundDuration(S sound) {
