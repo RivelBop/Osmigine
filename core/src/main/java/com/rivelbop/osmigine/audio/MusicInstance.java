@@ -132,7 +132,6 @@ public final class MusicInstance <M extends Enum<M> & MusicAsset> implements Mus
 
         if (wasChanged && isActive) {
             music.setPosition(position);
-            music.setVolume(rawVolume);
             music.setPan(pan, rawVolume);
             music.setLooping(isLooping);
 
