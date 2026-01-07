@@ -305,7 +305,7 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
         for (SoundInstance<S> instance : activeSoundInstances) {
             instance.setMasterVolume(currentSoundVolume);
         }
-        for (MusicAsset asset : musicClass.getEnumConstants()) {
+        for (M asset : musicClass.getEnumConstants()) {
             asset.get().setVolume(currentMusicVolume);
         }
     }
@@ -321,7 +321,7 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
     public void setMusicVolume(float volume) {
         musicVolume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         currentMusicVolume = masterVolume * musicVolume;
-        for (MusicAsset asset : musicClass.getEnumConstants()) {
+        for (M asset : musicClass.getEnumConstants()) {
             asset.get().setVolume(currentMusicVolume);
         }
     }
