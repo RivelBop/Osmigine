@@ -213,6 +213,11 @@ public final class MusicInstance <M extends Enum<M> & MusicAsset> implements Mus
         return position;
     }
 
+    /** Returns progress represented in range 0-1f */
+    public float getProgress() {
+        return getPosition() / duration;
+    }
+
     public boolean isActive() {
         return isActive;
     }
