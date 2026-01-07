@@ -1,7 +1,12 @@
 package com.rivelbop.osmigine.audio;
 
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.TimeUtils;
+import org.jspecify.annotations.Nullable;
+
+import static com.rivelbop.osmigine.audio.AudioSystem.*;
 
 public final class SoundInstance <S extends Enum<S> & SoundAsset> {
     public final S soundAsset;
@@ -9,10 +14,15 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
     public final float duration;
     public final long id;
 
+    // default - only really needed for the AudioSystem
+    int positionArrayIndex = -1;
+    boolean positionUpdated;
+
     private final long durationNanos;
 
-    private float volume;
+    private float relativeVolume;
     private float masterVolume;
+    private float positionalVolume = 1f;
     private float rawVolume;
 
     private float pitch;
@@ -24,15 +34,17 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
     private boolean isPaused;
     private boolean isFinished;
 
-    public SoundInstance(S soundAsset, float volume, float masterVolume, float pitch, float pan,
-                         boolean loop, long id, float duration) {
+    private Vector2 position;
+
+    public SoundInstance(S soundAsset, float relativeVolume, float masterVolume, float pitch,
+                         float pan, boolean loop, long id, float duration) {
         this.soundAsset = soundAsset;
         this.sound = soundAsset != null ? soundAsset.get() : NullSound.INSTANCE;
         this.id = id;
 
-        this.volume = volume;
+        this.relativeVolume = relativeVolume;
         this.masterVolume = masterVolume;
-        this.rawVolume = volume * masterVolume;
+        this.rawVolume = relativeVolume * masterVolume * positionalVolume;
 
         this.pitch = pitch;
         this.pan = pan;
@@ -94,33 +106,56 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
         sound.stop(id);
     }
 
-    /** Set the relative volume. */
-    public void setVolume(float newVolume) {
-        if (isFinished || newVolume < AudioSystem.FULL_VOLUME_RANGE[0] ||
-                newVolume > AudioSystem.FULL_VOLUME_RANGE[1]) {
+    public void setRelativeVolume(float newVolume) {
+        if (isFinished) {
             return;
         }
 
-        volume = newVolume;
-        rawVolume = volume * masterVolume;
+        newVolume = MathUtils.clamp(newVolume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
+        relativeVolume = newVolume;
+        rawVolume = relativeVolume * masterVolume * positionalVolume;
         sound.setVolume(id, rawVolume);
     }
 
-    /** Set the master volume. */
     public void setMasterVolume(float newVolume) {
-        if (isFinished || newVolume < AudioSystem.FULL_VOLUME_RANGE[0] ||
-                newVolume > AudioSystem.FULL_VOLUME_RANGE[1]) {
+        if (isFinished) {
             return;
         }
 
+        newVolume = MathUtils.clamp(newVolume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         masterVolume = newVolume;
-        rawVolume = volume * masterVolume;
+        rawVolume = relativeVolume * masterVolume * positionalVolume;
         sound.setVolume(id, rawVolume);
+    }
+
+    public void setPositionalVolume(float newVolume) {
+        if (isFinished) {
+            return;
+        }
+
+        newVolume = MathUtils.clamp(newVolume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
+        positionalVolume = newVolume;
+        rawVolume = relativeVolume * masterVolume * positionalVolume;
+        sound.setVolume(id, rawVolume);
+    }
+
+    public void setPositionalVolume(float newVolume, float newPan) {
+        if (isFinished) {
+            return;
+        }
+
+        newVolume = MathUtils.clamp(newVolume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
+        newPan = MathUtils.clamp(newPan, FULL_PAN_RANGE[0], FULL_PAN_RANGE[1]);
+
+        positionalVolume = newVolume;
+        rawVolume = relativeVolume * masterVolume * positionalVolume;
+        pan = newPan;
+
+        sound.setPan(id, pan, rawVolume);
     }
 
     public void setPitch(float newPitch) {
-        if (isFinished || newPitch < AudioSystem.FULL_PITCH_RANGE[0] ||
-                newPitch > AudioSystem.FULL_PITCH_RANGE[1]) {
+        if (isFinished) {
             return;
         }
 
@@ -129,6 +164,7 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
         double progress = (double) elapsed / (durationNanos / pitch);
 
         // Set pitch
+        newPitch = MathUtils.clamp(newPitch, FULL_PITCH_RANGE[0], FULL_PITCH_RANGE[1]);
         pitch = newPitch;
         sound.setPitch(id, pitch);
 
@@ -138,11 +174,11 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
     }
 
     public void setPan(float newPan) {
-        if (isFinished || newPan < AudioSystem.FULL_PAN_RANGE[0] ||
-                newPan > AudioSystem.FULL_PAN_RANGE[1]) {
+        if (isFinished) {
             return;
         }
 
+        newPan = MathUtils.clamp(newPan, FULL_PAN_RANGE[0], FULL_PAN_RANGE[1]);
         pan = newPan;
         sound.setPan(id, pan, rawVolume);
     }
@@ -153,7 +189,26 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
         }
 
         isLooping = loop;
-        sound.setLooping(id, loop);
+        sound.setLooping(id, isLooping);
+    }
+
+    public void setPosition(Vector2 newPos) {
+        if (newPos != null) {
+            setPosition(newPos.x, newPos.y);
+        }
+    }
+
+    public void setPosition(float x, float y) {
+        if (position == null) { // No need to update position (this is called on position creation)
+            position = new Vector2(x, y);
+            return;
+        }
+
+        if (Float.floatToIntBits(position.x) != Float.floatToIntBits(x) ||
+                Float.floatToIntBits(position.y) != Float.floatToIntBits(y)) {
+            positionUpdated = true;
+            position.set(x, y);
+        }
     }
 
     // NO GETTER FOR ID (TO AVOID DIRECTLY CALLING METHODS FROM THEM)
@@ -170,12 +225,16 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
         return duration;
     }
 
-    public float getVolume() {
-        return volume;
+    public float getRelativeVolume() {
+        return relativeVolume;
     }
 
     public float getMasterVolume() {
         return masterVolume;
+    }
+
+    public float getPositionalVolume() {
+        return positionalVolume;
     }
 
     public float getRawVolume() {
@@ -200,5 +259,11 @@ public final class SoundInstance <S extends Enum<S> & SoundAsset> {
 
     public boolean isFinished() {
         return isFinished;
+    }
+
+    /** DO NOT CHANGE - VOLUME AND PAN WILL NOT BE UPDATED! */
+    @Nullable
+    public Vector2 getPosition() {
+        return position;
     }
 }

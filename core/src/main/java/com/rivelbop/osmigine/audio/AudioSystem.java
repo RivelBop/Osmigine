@@ -8,6 +8,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 import com.rivelbop.osmigine.assets.Asset;
 
 import org.jaudiotagger.audio.AudioFile;
@@ -36,6 +37,11 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
     public static final String MASTER_VOLUME_PREF = "masterVolume";
     public static final String SOUND_VOLUME_PREF = "soundVolume";
     public static final String MUSIC_VOLUME_PREF = "musicVolume";
+
+    public final SoundInstance<S> nullSoundInstance = new SoundInstance<>(null,
+            FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[0], DEFAULT_PITCH, DEFAULT_PAN, false,
+            INVALID_SOUND_ID, 0f);
+
     private final Preferences preferences = Gdx.app.getPreferences(getClass().getCanonicalName());
 
     // Used for loading to/from assets
@@ -44,26 +50,29 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
     private final Map<S, Float> soundDurationMap;
     private final Map<M, Float> musicDurationMap;
 
+    // Unordered with the default Array capacity (for faster removal performance)
+    private final Array<SoundInstance<S>> activeSoundInstances = new Array<>(false, 16);
+    private final Array<SoundInstance<S>> activePositionalSoundInstances = new Array<>(false, 16);
+
     private final Vector2 soundListenerPosition = new Vector2();
     private float hearRange;
 
-    private float masterVolume;
-    private float soundVolume;
-    private float musicVolume;
+    private float masterVolume = FULL_VOLUME_RANGE[1];
+    private float soundVolume = FULL_VOLUME_RANGE[1];
+    private float musicVolume = FULL_VOLUME_RANGE[1];
 
     // Cached Values
-    private float currentSoundVolume;
-    private float currentMusicVolume;
+    private float currentSoundVolume = FULL_VOLUME_RANGE[1];
+    private float currentMusicVolume = FULL_VOLUME_RANGE[1];
 
     public AudioSystem(Class<S> soundClass, Class<M> musicClass, float hearRange) {
         this.soundClass = soundClass;
         this.musicClass = musicClass;
 
-        soundDurationMap = new EnumMap<>(soundClass);
-        musicDurationMap = new EnumMap<>(musicClass);
+        this.soundDurationMap = new EnumMap<>(soundClass);
+        this.musicDurationMap = new EnumMap<>(musicClass);
 
-        setHearRange(hearRange);
-        loadPreferences();
+        this.hearRange = Math.abs(hearRange);
     }
 
     public void savePreferences() {
@@ -78,120 +87,260 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
         soundVolume = preferences.getFloat(SOUND_VOLUME_PREF, FULL_VOLUME_RANGE[1]);
         musicVolume = preferences.getFloat(MUSIC_VOLUME_PREF, FULL_VOLUME_RANGE[1]);
 
-        currentSoundVolume = masterVolume * soundVolume;
-        currentMusicVolume = masterVolume * musicVolume;
+        setSoundVolume(soundVolume);
+        setMusicVolume(musicVolume);
     }
 
-    public long playSound(S sound) {
+    /** MUST BE CALLED FOR PROPER SOUND HANDLING */
+    public void update() {
+        for (int i = activeSoundInstances.size - 1; i > -1; i--) {
+            SoundInstance<S> instance = activeSoundInstances.get(i);
+            instance.update();
+
+            if (instance.isFinished()) {
+                activeSoundInstances.removeIndex(i);
+
+                // Handle positional sound (making sure to deal with unordered array removal)
+                if (instance.positionArrayIndex != -1) {
+                    activePositionalSoundInstances.get(activePositionalSoundInstances.size - 1)
+                            .positionArrayIndex = instance.positionArrayIndex;
+                    activePositionalSoundInstances.removeIndex(instance.positionArrayIndex);
+                    instance.positionArrayIndex = -1;
+                }
+            }
+        }
+
+        for (SoundInstance<S> instance : activePositionalSoundInstances) {
+            if (instance.positionUpdated) {
+                updatePositionalSoundInstance(instance);
+            }
+        }
+    }
+
+    public SoundInstance<S> playSound(S sound) {
         return playSound(sound, FULL_VOLUME_RANGE[1], DEFAULT_PITCH, DEFAULT_PAN, false);
     }
 
-    public long playSound(S sound, boolean loop) {
+    public SoundInstance<S> playSound(S sound, boolean loop) {
         return playSound(sound, FULL_VOLUME_RANGE[1], DEFAULT_PITCH, DEFAULT_PAN, loop);
     }
 
-    public long playSound(S sound, float volume) {
+    public SoundInstance<S> playSound(S sound, float volume) {
         return playSound(sound, volume, DEFAULT_PITCH, DEFAULT_PAN, false);
     }
 
-    public long playSound(S sound, float volume, boolean loop) {
+    public SoundInstance<S> playSound(S sound, float volume, boolean loop) {
         return playSound(sound, volume, DEFAULT_PITCH, DEFAULT_PAN, loop);
     }
 
-    public long playSound(S sound, float volume, float pitch) {
+    public SoundInstance<S> playSound(S sound, float volume, float pitch) {
         return playSound(sound, volume, pitch, DEFAULT_PAN, false);
     }
 
-    public long playSound(S sound, float volume, float pitch, boolean loop) {
+    public SoundInstance<S> playSound(S sound, float volume, float pitch, boolean loop) {
         return playSound(sound, volume, pitch, DEFAULT_PAN, loop);
     }
 
-    public long playSound(S sound, float volume, float pitch, float pan) {
+    public SoundInstance<S> playSound(S sound, float volume, float pitch, float pan) {
         return playSound(sound, volume, pitch, pan, false);
     }
 
-    public long playSound(S sound, float volume, float pitch, float pan, boolean loop) {
+    public SoundInstance<S> playSound(S sound, float volume, float pitch, float pan, boolean loop) {
         volume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         pitch = MathUtils.clamp(pitch, FULL_PITCH_RANGE[0], FULL_PITCH_RANGE[1]);
         pan = MathUtils.clamp(pan, FULL_PAN_RANGE[0], FULL_PAN_RANGE[1]);
-        return loop ? sound.get().loop(currentSoundVolume * volume, pitch, pan) :
+
+        long id = loop ? sound.get().loop(currentSoundVolume * volume, pitch, pan) :
                 sound.get().play(currentSoundVolume * volume, pitch, pan);
+        SoundInstance<S> instance =
+                new SoundInstance<>(sound, volume, currentSoundVolume, pitch, pan, loop, id,
+                        getSoundDuration(sound));
+        activeSoundInstances.add(instance);
+
+        return instance;
     }
 
     public void setSoundListenerPosition(Vector2 position) {
-        soundListenerPosition.set(position);
+        if (position != null) {
+            setSoundListenerPosition(position.x, position.y);
+        }
     }
 
-    public void setHearRange(float hearRange) {
-        this.hearRange = Math.abs(hearRange);
+    public void setSoundListenerPosition(float x, float y) {
+        if (!soundListenerPosition.epsilonEquals(x, y)) {
+            soundListenerPosition.set(x, y);
+            updateAllPositionalSoundInstances();
+        }
     }
 
-    public long playSoundAt(Vector2 position, S sound) {
-        return playSoundAt(position, sound, FULL_VOLUME_RANGE[1], DEFAULT_PITCH);
+    public void setHearRange(float newRange) {
+        newRange = Math.abs(newRange);
+
+        if (hearRange != newRange) {
+            hearRange = newRange;
+            updateAllPositionalSoundInstances();
+        }
     }
 
-    public long playSoundAt(Vector2 position, S sound, float volume) {
-        return playSoundAt(position, sound, volume, DEFAULT_PITCH);
+    /** AUTOMATICALLY CALLED IN UPDATE, BUT CAN CALL MANUALLY WHEN "NECESSARY" */
+    public void updateAllPositionalSoundInstances() {
+        for (SoundInstance<S> instance : activePositionalSoundInstances) {
+            updatePositionalSoundInstance(instance);
+        }
     }
 
-    public long playSoundAt(Vector2 position, S sound, float volume, float pitch) {
+    /** AUTOMATICALLY CALLED IN UPDATE, BUT CAN CALL MANUALLY WHEN "NECESSARY" */
+    public void updatePositionalSoundInstance(SoundInstance<S> instance) {
+        if (instance.positionArrayIndex == -1 || instance.getPosition() == null) {
+            return;
+        }
+
+        Vector2 position = instance.getPosition();
+        float pos2 = soundListenerPosition.dst2(position);
+        float hearRange2 = hearRange * hearRange;
+        if (pos2 <= hearRange2) {
+            float distance = (float) Math.sqrt(pos2);
+            float positionalVolume = FULL_VOLUME_RANGE[1] - (distance / hearRange);
+            float pan = (position.x - soundListenerPosition.x) / (hearRange / 2f);
+            instance.setPositionalVolume(positionalVolume, pan);
+        } else {
+            // Mute if outside of range
+            instance.setPositionalVolume(FULL_VOLUME_RANGE[0]);
+        }
+        // The position has now been updated, get rid of flag
+        instance.positionUpdated = false;
+    }
+
+    public SoundInstance<S> playSoundAt(Vector2 position, S sound) {
+        return playSoundAt(position, sound, FULL_VOLUME_RANGE[1], DEFAULT_PITCH, false);
+    }
+
+    public SoundInstance<S> playSoundAt(Vector2 position, S sound, boolean loop) {
+        return playSoundAt(position, sound, FULL_VOLUME_RANGE[1], DEFAULT_PITCH, loop);
+    }
+
+    public SoundInstance<S> playSoundAt(Vector2 position, S sound, float volume) {
+        return playSoundAt(position, sound, volume, DEFAULT_PITCH, false);
+    }
+
+    public SoundInstance<S> playSoundAt(Vector2 position, S sound, float volume, boolean loop) {
+        return playSoundAt(position, sound, volume, DEFAULT_PITCH, loop);
+    }
+
+    public SoundInstance<S> playSoundAt(Vector2 position, S sound, float volume, float pitch) {
+        return playSoundAt(position, sound, volume, pitch, false);
+    }
+
+    /** CAN RETURN A NULL_SOUND_INSTANCE (IF NOT IN HEAR_RANGE). */
+    public SoundInstance<S> playSoundAt(Vector2 position, S sound, float volume, float pitch,
+                                        boolean loop) {
         float pos2 = soundListenerPosition.dst2(position);
         float hearRange2 = hearRange * hearRange;
 
         if (pos2 <= hearRange2) {
-            float distance = (float) Math.sqrt(pos2);
             volume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
-            return playSound(sound, (FULL_VOLUME_RANGE[1] - (distance / hearRange)) * volume,
-                    pitch, (position.x - soundListenerPosition.x) / (hearRange / 2f));
+            pitch = MathUtils.clamp(pitch, FULL_PITCH_RANGE[0], FULL_PITCH_RANGE[1]);
+            float pan = MathUtils.clamp((position.x - soundListenerPosition.x) / (hearRange / 2f),
+                    FULL_PAN_RANGE[0], FULL_PAN_RANGE[1]);
+
+            float distance = (float) Math.sqrt(pos2);
+            float positionalVolume = Math.max(FULL_VOLUME_RANGE[0],
+                    (FULL_VOLUME_RANGE[1] - (distance / hearRange)));
+            float totalVolume = volume * positionalVolume * currentSoundVolume;
+
+            long id = loop ? sound.get().loop(totalVolume, pitch, pan) :
+                    sound.get().play(totalVolume, pitch, pan);
+
+            SoundInstance<S> instance =
+                    new SoundInstance<>(sound, volume, currentSoundVolume, pitch, pan, loop, id,
+                            getSoundDuration(sound));
+            instance.setPositionalVolume(positionalVolume);
+            instance.setPosition(position);
+            instance.positionArrayIndex = activePositionalSoundInstances.size;
+
+            activeSoundInstances.add(instance);
+            activePositionalSoundInstances.add(instance);
+            return instance;
         }
-        return INVALID_SOUND_ID;
+
+        // Avoids creating new "null" instances (good for GC)
+        return nullSoundInstance;
     }
 
-    public void pauseAllSounds(S sound) {
-        for (S s : soundClass.getEnumConstants()) {
-            s.get().pause();
+    public void pauseAllSounds() {
+        for (SoundInstance<S> s : activeSoundInstances) {
+            s.pause();
         }
     }
 
-    public void resumeAllSounds(S sound) {
-        for (S s : soundClass.getEnumConstants()) {
-            s.get().resume();
+    public void resumeAllSounds() {
+        for (SoundInstance<S> s : activeSoundInstances) {
+            s.resume();
         }
     }
 
-    public void stopAllSounds(S sound) {
-        for (S s : soundClass.getEnumConstants()) {
-            s.get().stop();
+    public void stopAllSounds() {
+        for (SoundInstance<S> s : activeSoundInstances) {
+            s.stop();
+            s.positionArrayIndex = -1;
         }
+        activeSoundInstances.clear();
+        activePositionalSoundInstances.clear();
     }
 
-    public void playMusic(M music, boolean loop) {
+    // TODO: More robust music system
+    public Music playMusic(M music, boolean loop) {
         Music track = music.get();
         track.setLooping(loop);
         track.setVolume(currentMusicVolume);
         track.play();
+        return track;
     }
 
     public void setMasterVolume(float volume) {
         masterVolume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         currentSoundVolume = masterVolume * soundVolume;
         currentMusicVolume = masterVolume * musicVolume;
+
+        for (SoundInstance<S> instance : activeSoundInstances) {
+            instance.setMasterVolume(currentSoundVolume);
+        }
+        for (MusicAsset asset : musicClass.getEnumConstants()) {
+            asset.get().setVolume(currentMusicVolume);
+        }
     }
 
     public void setSoundVolume(float volume) {
         soundVolume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         currentSoundVolume = masterVolume * soundVolume;
+        for (SoundInstance<S> instance : activeSoundInstances) {
+            instance.setMasterVolume(currentSoundVolume);
+        }
     }
 
     public void setMusicVolume(float volume) {
         musicVolume = MathUtils.clamp(volume, FULL_VOLUME_RANGE[0], FULL_VOLUME_RANGE[1]);
         currentMusicVolume = masterVolume * musicVolume;
+        for (MusicAsset asset : musicClass.getEnumConstants()) {
+            asset.get().setVolume(currentMusicVolume);
+        }
+    }
+
+    /** DO NOT ALTER, GETTER ONLY */
+    public Array<SoundInstance<S>> getActiveSoundInstances() {
+        return activeSoundInstances;
+    }
+
+    /** DO NOT ALTER, GETTER ONLY */
+    public Array<SoundInstance<S>> getActivePositionalSoundInstances() {
+        return activePositionalSoundInstances;
     }
 
     public float getSoundDuration(S sound) {
         return soundDurationMap.get(sound);
     }
 
+    /** DO NOT ALTER, GETTER ONLY */
     public Map<S, Float> getSoundDurationMap() {
         return soundDurationMap;
     }
@@ -200,10 +349,12 @@ public final class AudioSystem<S extends Enum<S> & SoundAsset,
         return musicDurationMap.get(music);
     }
 
+    /** DO NOT ALTER, GETTER ONLY */
     public Map<M, Float> getMusicDurationMap() {
         return musicDurationMap;
     }
 
+    /** DO NOT ALTER, GETTER ONLY */
     public Vector2 getSoundListenerPosition() {
         return soundListenerPosition;
     }
