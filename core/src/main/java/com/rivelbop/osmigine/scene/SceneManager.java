@@ -1,7 +1,11 @@
 package com.rivelbop.osmigine.scene;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.rivelbop.osmigine.audio.AudioSystem;
+import com.rivelbop.osmigine.audio.MusicAsset;
+import com.rivelbop.osmigine.audio.SoundAsset;
 import com.rivelbop.osmigine.input.ControllerSystem;
 import com.rivelbop.osmigine.input.CursorProvider;
 import com.rivelbop.osmigine.input.InputMap;
@@ -9,19 +13,30 @@ import com.rivelbop.osmigine.input.InputSystem;
 import de.eskalon.commons.core.ManagedGame;
 import de.eskalon.commons.screen.transition.ScreenTransition;
 
-/** @param <T> The class type for InputMap keys. */
-public abstract class SceneManager<T> extends ManagedGame<Scene<T>, ScreenTransition> {
+/**
+ * @param <I> The class type for InputMap keys.
+ * @param <S> The enum type for SoundAssets for the AudioSystem.
+ * @param <M> The enum type for MusicAssets for the AudioSystem.
+ */
+public abstract class SceneManager<I, S extends Enum<S> & SoundAsset,
+        M extends Enum<M> & MusicAsset> extends ManagedGame<Scene<I, S, M>, ScreenTransition> {
     protected AssetManager assets;
     protected SpriteBatch spriteBatch;
 
     protected InputSystem inputs;
     protected ControllerSystem controllers;
-    protected InputMap<T> inputMap;
+    protected InputMap<I> inputMap;
+
+    protected AudioSystem<S, M> audio;
+    protected Class<S> soundClass;
+    protected Class<M> musicClass;
 
     private final CursorProvider cursorProvider;
 
-    public SceneManager(CursorProvider cursorProvider) {
+    public SceneManager(CursorProvider cursorProvider, Class<S> soundClass, Class<M> musicClass) {
         this.cursorProvider = cursorProvider;
+        this.soundClass = soundClass;
+        this.musicClass = musicClass;
     }
 
     /** Replacement for create() method. */
@@ -37,11 +52,11 @@ public abstract class SceneManager<T> extends ManagedGame<Scene<T>, ScreenTransi
         // Intentionally empty
     }
 
-    public final void setScene(Scene<T> scene) {
+    public final void setScene(Scene<I, S, M> scene) {
         screenManager.pushScreen(scene, null);
     }
 
-    public final void setScene(Scene<T> scene, ScreenTransition transition) {
+    public final void setScene(Scene<I, S, M> scene, ScreenTransition transition) {
         screenManager.pushScreen(scene, transition);
     }
 
@@ -57,6 +72,12 @@ public abstract class SceneManager<T> extends ManagedGame<Scene<T>, ScreenTransi
         controllers = new ControllerSystem(true);
         inputMap = new InputMap<>(inputs, controllers);
 
+        // Creates audio system with a default hear range "balanced" to the current window width
+        audio = new AudioSystem<>(soundClass, musicClass, Gdx.graphics.getWidth() * 0.75f);
+        audio.loadToAssets(assets);
+        assets.finishLoading();
+        audio.loadFromAssets(assets);
+
         init();
     }
 
@@ -68,6 +89,7 @@ public abstract class SceneManager<T> extends ManagedGame<Scene<T>, ScreenTransi
 
         inputs.postRender();
         controllers.postRender();
+        audio.postRender();
     }
 
     /** CALL super.dispose() IF OVERRIDE! */
@@ -97,7 +119,11 @@ public abstract class SceneManager<T> extends ManagedGame<Scene<T>, ScreenTransi
         return controllers;
     }
 
-    public InputMap<T> inputMap() {
+    public InputMap<I> inputMap() {
         return inputMap;
+    }
+
+    public AudioSystem<S, M> audio() {
+        return audio;
     }
 }
