@@ -26,6 +26,7 @@ NOTE: On Linux run gdx-liftoff by calling `__GL_THREADED_OPTIMIZATIONS=0 java -j
 * ScreenManager
 * ShapeDrawer
 * SteamWorks4J (EXTERNAL)
+* jAudioTagger (EXTERNAL)
 
 ### SETTINGS
 * LIBGDX VERSION: 1.14.0 or latest
@@ -47,6 +48,9 @@ Once the new project is generated, make sure to do the following:
      implementation "com.code-disaster.steamworks4j:steamworks4j:$steamworks4jVersion"
      implementation "com.code-disaster.steamworks4j:steamworks4j-server:$steamworks4jVersion"
      ```
+* For jAudioTagger (necessary for AudioSystem):
+  1. Add `jaudiotaggerVersion=2.3.15` to `gradle.properties`.
+  2. Inside the core `build.gradle`, add the following dependency: `api "com.github.Adonai:jaudiotagger:$jaudiotaggerVersion"`.
 * For KryoNet:
   1. Cut `api "com.github.crykn:kryonet:$kryoNetVersion"` from the core `build.gradle` dependencies.
   2. Paste `api "com.github.crykn:kryonet:$kryoNetVersion"` into the shared `build.gradle`.
@@ -67,6 +71,10 @@ your game, make sure to:
      ```
 * Remove `configuration.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.ANGLE_GLES20, 0, 0);`
   from `Lwjgl3Launcher.java` to prevent `EGL: Failed to clear current context` error on Linux.
+* Replace `configuration.setForegroundFPS(Lwjgl3ApplicationConfiguration.getDisplayMode().refreshRate + 1);`
+  in `Lwjgl3Launcher.java` with 
+  `configuration.setForegroundFPS(Lwjgl3ApplicationConfiguration.getDisplayMode().refreshRate + (SharedLibraryLoader.os == Os.MacOsX ? 0 : 1));`
+  to prevent slight stutters on MacOS.
 
 You can now copy over the Osmigine source code into each libGDX platform module that requires it.
 For example, the lwjgl3 module has platform-specific code for precise cursor position handling via
