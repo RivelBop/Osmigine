@@ -4,6 +4,26 @@
 These tools are built to benefit us in our game development process, but we feel that it can benefit
 you as well!
 
+## Features
+The following is provided by Osmigine and works for both Android and Desktop:
+* `InputSystem`, `ControllerSystem`, `InputMap`
+  * For keyboards, mice, touchscreens, controllers
+  * Allows for remapping/mapping to specified keys (like an `ObjectMap`)
+  * Superior controller input handling (with null-safety and less direct controller-mapping usage)
+  * Uses `InputProcessor` and `ControllerListener` for superior input-polling
+* `AudioSystem`, `SoundInstance`, `MusicInstance`
+  * Position-based Sounds
+  * Get the duration for both `Sound` and `Music`
+  * Full control for individual sound instances played off a `Sound` via `SoundInstance`
+  * Use `Music` tracks as individual instances for more control
+  * Handles loading all provided sounds and music automatically via an `AssetManager`
+* `SceneManager`, `Scene`
+  * Allows for cool screen-transitions from scene to scene via `ScreenManager`
+  * Handles previously mentioned systems for you and provides easy access to them
+  * Handles screen disposal and screen-clearing for you
+  * Built-in tick-rate system (choose to render, tick, or both!)
+* And More! (WIP)
+
 ## Generate New Project
 The following is to be done with the [gdx-liftoff](https://github.com/libgdx/gdx-liftoff) tool.  
 NOTE: On Linux run gdx-liftoff by calling `__GL_THREADED_OPTIMIZATIONS=0 java -jar gdx-liftoff.jar`!  
@@ -79,3 +99,10 @@ your game, make sure to:
 You can now copy over the Osmigine source code into each libGDX platform module that requires it.
 For example, the lwjgl3 module has platform-specific code for precise cursor position handling via
 the `GlfwCursorProvider.java`, make sure to copy it over!
+
+## Documentation
+I will try my best to write some general documentation for each class provided by the engine in the
+form of mark-down files:
+* [Audio]() (WIP)
+* [Input](.github/DOCS_INPUT.md)
+* [Scene]() (WIP)
