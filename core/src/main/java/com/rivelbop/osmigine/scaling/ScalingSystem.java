@@ -16,20 +16,24 @@ public final class ScalingSystem {
     private float scale;
 
     public ScalingSystem(int targetWidth, int targetHeight) {
-        this.targetWidth = targetWidth;
-        this.targetHeight = targetHeight;
-        this.targetAspectRatio = (float) targetWidth / targetHeight;
-        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-    }
-
-    public void apply() {
-        viewport.apply(true);
+        setTargetSize(targetWidth, targetHeight);
     }
 
     public void resize(int width, int height) {
         viewport.update(width, height, true);
         currentAspectRatio = (float) width / height;
         scale = Math.min((float) width / targetWidth, (float) height / targetHeight);
+    }
+
+    public void apply() {
+        viewport.apply(true);
+    }
+
+    public void setTargetSize(int targetWidth, int targetHeight) {
+        this.targetWidth = targetWidth;
+        this.targetHeight = targetHeight;
+        this.targetAspectRatio = (float) targetWidth / targetHeight;
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
     public Matrix4 combined() {
