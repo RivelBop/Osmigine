@@ -12,6 +12,11 @@ import com.rivelbop.osmigine.input.InputMap;
 import com.rivelbop.osmigine.input.InputSystem;
 import de.eskalon.commons.screen.ManagedScreen;
 
+/**
+ * @param <I> The class type for InputMap keys.
+ * @param <S> The enum type for SoundAssets for the AudioSystem.
+ * @param <M> The enum type for MusicAssets for the AudioSystem.
+ */
 public abstract class Scene<I, S extends Enum<S> & SoundAsset,
         M extends Enum<M> & MusicAsset> extends ManagedScreen {
     public final SceneManager<I, S, M> sceneManager;
