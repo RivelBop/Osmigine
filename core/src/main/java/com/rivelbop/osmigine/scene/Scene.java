@@ -4,19 +4,24 @@ import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.rivelbop.osmigine.audio.AudioSystem;
+import com.rivelbop.osmigine.audio.MusicAsset;
+import com.rivelbop.osmigine.audio.SoundAsset;
 import com.rivelbop.osmigine.input.ControllerSystem;
 import com.rivelbop.osmigine.input.InputMap;
 import com.rivelbop.osmigine.input.InputSystem;
 import de.eskalon.commons.screen.ManagedScreen;
 
-public abstract class Scene<T> extends ManagedScreen {
-    public final SceneManager<T> sceneManager;
+public abstract class Scene<I, S extends Enum<S> & SoundAsset,
+        M extends Enum<M> & MusicAsset> extends ManagedScreen {
+    public final SceneManager<I, S, M> sceneManager;
     public final float tickRate;
 
     // Easier access to the "necessary" parts of the SceneManager
     protected final AssetManager assets;
     protected final SpriteBatch spriteBatch;
-    protected final InputMap<T> inputMap;
+    protected final InputMap<I> inputMap;
+    protected final AudioSystem<S, M> audio;
 
     // Private - force user to use a mapping system for better future-proofing
     private final InputSystem inputs;
@@ -34,7 +39,7 @@ public abstract class Scene<T> extends ManagedScreen {
     public Scene(float tickRate) {
         ApplicationListener app = Gdx.app.getApplicationListener();
         if (app instanceof SceneManager) {
-            sceneManager = (SceneManager<T>) app;
+            sceneManager = (SceneManager<I, S, M>) app;
         } else {
             throw new IllegalArgumentException("App must be an instance of SceneManager!");
         }
@@ -42,6 +47,7 @@ public abstract class Scene<T> extends ManagedScreen {
         assets = sceneManager.assets;
         spriteBatch = sceneManager.spriteBatch;
         inputMap = sceneManager.inputMap;
+        audio = sceneManager.audio;
 
         inputs = sceneManager.inputs;
         controllers = sceneManager.controllers;

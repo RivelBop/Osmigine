@@ -12,6 +12,7 @@ dependencies {
   api "com.github.tommyettinger:libgdx-texturepacker:$texturePackerOnlyVersion"
   api "com.github.tommyettinger:libgdx-textureunpacker:$textureUnpackerOnlyVersion"
   api "space.earlygrey:shapedrawer:$shapeDrawerVersion"
+  api "com.github.Adonai:jaudiotagger:$jaudiotaggerVersion"
   api project(':shared')
 
   if(enableGraalNative == 'true') {
