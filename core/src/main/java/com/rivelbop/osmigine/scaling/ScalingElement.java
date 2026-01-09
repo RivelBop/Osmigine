@@ -1,17 +1,11 @@
 package com.rivelbop.osmigine.scaling;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.math.Rectangle;
 
 public abstract class ScalingElement {
-    protected float targetX;
-    protected float targetY;
-    protected float targetWidth;
-    protected float targetHeight;
-
-    protected float currentX;
-    protected float currentY;
-    protected float currentWidth;
-    protected float currentHeight;
+    protected final Rectangle target;
+    protected final Rectangle current;
 
     protected float scale;
     protected float percentX;
@@ -22,10 +16,8 @@ public abstract class ScalingElement {
 
     public ScalingElement(float targetX, float targetY, float targetWidth, float targetHeight,
                           int targetScreenWidth, int targetScreenHeight) {
-        this.targetX = targetX;
-        this.targetY = targetY;
-        this.targetWidth = targetWidth;
-        this.targetHeight = targetHeight;
+        target = new Rectangle(targetX, targetY, targetWidth, targetHeight);
+        current = new Rectangle(target);
 
         this.targetScreenWidth = targetScreenWidth;
         this.targetScreenHeight = targetScreenHeight;
@@ -37,13 +29,12 @@ public abstract class ScalingElement {
 
     public final void resize(int screenWidth, int screenHeight, float scale) {
         this.scale = scale;
-
-        currentX = percentX * screenWidth;
-        currentY = percentY * screenHeight;
-        currentWidth = targetWidth * scale;
-        currentHeight = targetHeight * scale;
-
-        resize(currentX, currentY, currentWidth, currentHeight, scale);
+        current.set(
+                percentX * screenWidth,
+                percentY * screenHeight,
+                target.width * scale,
+                target.height * scale);
+        resize(current.x, current.y, current.width, current.height, scale);
     }
 
     /**
@@ -59,57 +50,57 @@ public abstract class ScalingElement {
                                    float newScale);
 
     public void setTargetX(float x) {
-        targetX = x;
+        target.x = x;
         percentX = x / targetScreenWidth;
-        currentX = percentX * Gdx.graphics.getWidth();
+        current.x = percentX * Gdx.graphics.getWidth();
     }
 
     public void setTargetY(float y) {
-        targetY = y;
+        target.y = y;
         percentY = y / targetScreenHeight;
-        currentY = percentY * Gdx.graphics.getHeight();
+        current.y = percentY * Gdx.graphics.getHeight();
     }
 
     public void setTargetWidth(float width) {
-        targetWidth = width;
-        currentWidth = targetWidth * scale;
+        target.width = width;
+        current.width = width * scale;
     }
 
     public void setTargetHeight(float height) {
-        targetHeight = height;
-        currentHeight = targetHeight * scale;
+        target.height = height;
+        current.height = height * scale;
     }
 
     public float getTargetX() {
-        return targetX;
+        return target.x;
     }
 
     public float getTargetY() {
-        return targetY;
+        return target.y;
     }
 
     public float getTargetWidth() {
-        return targetWidth;
+        return target.width;
     }
 
     public float getTargetHeight() {
-        return targetHeight;
+        return target.height;
     }
 
     public float getCurrentX() {
-        return currentX;
+        return current.x;
     }
 
     public float getCurrentY() {
-        return currentY;
+        return current.y;
     }
 
     public float getCurrentWidth() {
-        return currentWidth;
+        return current.width;
     }
 
     public float getCurrentHeight() {
-        return currentHeight;
+        return current.height;
     }
 
     public float getScale() {
