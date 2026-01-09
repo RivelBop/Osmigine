@@ -27,6 +27,11 @@ public abstract class ScalingElement {
 
     int anchorIndex = -1;
 
+    /** CALL IF ANCHOR ASSIGNED LATER OR VALUES NOT OBTAINABLE - IDEAL FOR SCALING_SYSTEM */
+    public ScalingElement(float x, float y, float targetWidth, float targetHeight, int alignment) {
+        this(x, y, targetWidth, targetHeight, null, alignment);
+    }
+
     public ScalingElement(float offsetX, float offsetY, float targetWidth, float targetHeight,
                           Anchor anchor, int alignment) {
         this.target = new Rectangle(offsetX, offsetY, targetWidth, targetHeight);
