@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Array;
 import org.jspecify.annotations.Nullable;
 
 public abstract class ScalingElement {
@@ -24,21 +25,23 @@ public abstract class ScalingElement {
     protected int targetScreenWidth;
     protected int targetScreenHeight;
 
+    int anchorIndex = -1;
+
     public ScalingElement(float offsetX, float offsetY, float targetWidth, float targetHeight,
                           Anchor anchor, int alignment) {
-        this(offsetX, offsetY, targetWidth, targetHeight, anchor.targetScreenWidth,
-                anchor.targetScreenHeight, anchor, alignment);
+        this.target = new Rectangle(offsetX, offsetY, targetWidth, targetHeight);
+        this.current = new Rectangle();
+
+        this.alignment = alignment;
+
+        this.lastScreenWidth = Gdx.graphics.getWidth();
+        this.lastScreenHeight = Gdx.graphics.getHeight();
+
+        setAnchor(anchor);
     }
 
     public ScalingElement(float targetX, float targetY, float targetWidth, float targetHeight,
                           int targetScreenWidth, int targetScreenHeight, int alignment) {
-        this(targetX, targetY, targetWidth, targetHeight, targetScreenWidth, targetScreenHeight,
-                null, alignment);
-    }
-
-    private ScalingElement(float targetX, float targetY, float targetWidth, float targetHeight,
-                           int targetScreenWidth, int targetScreenHeight, @Nullable Anchor anchor,
-                           int alignment) {
         this.target = new Rectangle(targetX, targetY, targetWidth, targetHeight);
         this.current = new Rectangle();
 
@@ -52,8 +55,6 @@ public abstract class ScalingElement {
 
         this.targetScreenWidth = targetScreenWidth;
         this.targetScreenHeight = targetScreenHeight;
-
-        this.anchor = anchor;
 
         resize(lastScreenWidth, lastScreenHeight);
     }
@@ -142,9 +143,19 @@ public abstract class ScalingElement {
     }
 
     public void setAnchor(Anchor anchor) {
+        if (this.anchor == anchor || anchor == this) {
+            return;
+        }
+
+        if (this.anchor != null) {
+            this.anchor.remove(this);
+        }
+
         this.anchor = anchor;
         if (anchor != null) {
+            scale = anchor.scale;
             setTargetScreenSize(anchor.targetScreenWidth, anchor.targetScreenHeight);
+            anchor.add(this);
             return;
         }
         updateCurrent(lastScreenWidth, lastScreenHeight);
@@ -178,25 +189,26 @@ public abstract class ScalingElement {
     }
 
     public void setTargetScreenSize(int width, int height) {
+        // Can be simplified to not calculate percent if on anchor but kept in case removed from one
         targetScreenWidth = width;
         percentX = target.x / width;
 
         targetScreenHeight = height;
         percentY = target.y / height;
 
-        updateCurrent(lastScreenWidth, lastScreenHeight);
+        resize(lastScreenWidth, lastScreenHeight);
     }
 
     public void setTargetScreenWidth(int width) {
         targetScreenWidth = width;
         percentX = target.x / width;
-        updateCurrent(lastScreenWidth, lastScreenHeight);
+        resize(lastScreenWidth, lastScreenHeight);
     }
 
     public void setTargetScreenHeight(int height) {
         targetScreenHeight = height;
         percentY = target.y / height;
-        updateCurrent(lastScreenWidth, lastScreenHeight);
+        resize(lastScreenWidth, lastScreenHeight);
     }
 
     public float getTargetX() {
@@ -257,6 +269,9 @@ public abstract class ScalingElement {
     }
 
     public static final class Anchor extends ScalingElement {
+        // Half default capacity
+        private final Array<ScalingElement> connectedElements = new Array<>(false, 8);
+
         public Anchor(int alignment, int targetScreenWidth, int targetScreenHeight) {
             super(
                     Align.isLeft(alignment) ? 0f :
@@ -271,7 +286,38 @@ public abstract class ScalingElement {
         @Override
         protected void resize(float newX, float newY, float newWidth, float newHeight,
                               float newScale) {
-            // Intentionally empty
+            if (connectedElements == null) {
+                return;
+            }
+
+            for (ScalingElement e : connectedElements) {
+                e.resize(lastScreenWidth, lastScreenHeight, newScale);
+            }
+        }
+
+        /** Same as calling ScalingElement#setAnchor() */
+        public void addElement(ScalingElement element) {
+            element.setAnchor(this);
+        }
+
+        /** Same as calling ScalingElement#setAnchor(null) */
+        public void removeElement(ScalingElement element) {
+            element.setAnchor(null);
+        }
+
+        /** To be called by ScalingElement setAnchor */
+        void add(ScalingElement element) {
+            element.anchorIndex = connectedElements.size;
+            connectedElements.add(element);
+        }
+
+        /** To be called by ScalingElement setAnchor */
+        void remove(ScalingElement element) {
+            if (element.anchor == this) {
+                connectedElements.get(connectedElements.size - 1).anchorIndex = element.anchorIndex;
+                connectedElements.removeIndex(element.anchorIndex);
+                element.anchorIndex = -1;
+            }
         }
     }
 }
