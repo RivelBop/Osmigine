@@ -4,11 +4,14 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Align;
+import org.jspecify.annotations.Nullable;
 
 public abstract class ScalingElement {
     protected final Rectangle target;
     protected final Rectangle current;
 
+    @Nullable
+    protected Anchor anchor;
     protected int alignment;
 
     protected float scale;
@@ -18,17 +21,24 @@ public abstract class ScalingElement {
     protected int lastScreenWidth;
     protected int lastScreenHeight;
 
-    protected float targetScreenWidth;
-    protected float targetScreenHeight;
+    protected int targetScreenWidth;
+    protected int targetScreenHeight;
 
-    public ScalingElement(float targetX, float targetY, float targetWidth, float targetHeight,
-                          int targetScreenWidth, int targetScreenHeight) {
-        this(targetX, targetY, targetWidth, targetHeight, targetScreenWidth, targetScreenHeight,
-                Align.bottomLeft);
+    public ScalingElement(float offsetX, float offsetY, float targetWidth, float targetHeight,
+                          Anchor anchor, int alignment) {
+        this(offsetX, offsetY, targetWidth, targetHeight, anchor.targetScreenWidth,
+                anchor.targetScreenHeight, anchor, alignment);
     }
 
     public ScalingElement(float targetX, float targetY, float targetWidth, float targetHeight,
                           int targetScreenWidth, int targetScreenHeight, int alignment) {
+        this(targetX, targetY, targetWidth, targetHeight, targetScreenWidth, targetScreenHeight,
+                null, alignment);
+    }
+
+    private ScalingElement(float targetX, float targetY, float targetWidth, float targetHeight,
+                           int targetScreenWidth, int targetScreenHeight, @Nullable Anchor anchor,
+                           int alignment) {
         this.target = new Rectangle(targetX, targetY, targetWidth, targetHeight);
         this.current = new Rectangle();
 
@@ -42,6 +52,8 @@ public abstract class ScalingElement {
 
         this.targetScreenWidth = targetScreenWidth;
         this.targetScreenHeight = targetScreenHeight;
+
+        this.anchor = anchor;
 
         resize(lastScreenWidth, lastScreenHeight);
     }
@@ -78,8 +90,13 @@ public abstract class ScalingElement {
                                    float newScale);
 
     protected final void updateCurrent(int screenWidth, int screenHeight) {
-        current.set(percentX * screenWidth, percentY * screenHeight, target.width * scale,
-                target.height * scale);
+        current.setSize(target.width * scale, target.height * scale);
+        if (anchor == null) {
+            current.setPosition(percentX * screenWidth, percentY * screenHeight);
+        } else {
+            current.setPosition(anchor.current.x + target.x * scale,
+                    anchor.current.y + target.y * scale);
+        }
 
         if (Align.isCenterHorizontal(alignment)) {
             current.x -= current.width / 2f;
@@ -98,8 +115,7 @@ public abstract class ScalingElement {
 
     public void setTargetPosition(Vector2 position) {
         if (position != null) {
-            setTargetX(position.x);
-            setTargetY(position.y);
+            setTargetPosition(position.x, position.y);
         }
     }
 
@@ -122,6 +138,15 @@ public abstract class ScalingElement {
     public void setTargetY(float y) {
         target.y = y;
         percentY = y / targetScreenHeight;
+        updateCurrent(lastScreenWidth, lastScreenHeight);
+    }
+
+    public void setAnchor(Anchor anchor) {
+        this.anchor = anchor;
+        if (anchor != null) {
+            setTargetScreenSize(anchor.targetScreenWidth, anchor.targetScreenHeight);
+            return;
+        }
         updateCurrent(lastScreenWidth, lastScreenHeight);
     }
 
@@ -152,7 +177,7 @@ public abstract class ScalingElement {
         updateCurrent(lastScreenWidth, lastScreenHeight);
     }
 
-    public void setTargetScreenSize(float width, float height) {
+    public void setTargetScreenSize(int width, int height) {
         targetScreenWidth = width;
         percentX = target.x / width;
 
@@ -162,13 +187,13 @@ public abstract class ScalingElement {
         updateCurrent(lastScreenWidth, lastScreenHeight);
     }
 
-    public void setTargetScreenWidth(float width) {
+    public void setTargetScreenWidth(int width) {
         targetScreenWidth = width;
         percentX = target.x / width;
         updateCurrent(lastScreenWidth, lastScreenHeight);
     }
 
-    public void setTargetScreenHeight(float height) {
+    public void setTargetScreenHeight(int height) {
         targetScreenHeight = height;
         percentY = target.y / height;
         updateCurrent(lastScreenWidth, lastScreenHeight);
@@ -218,11 +243,37 @@ public abstract class ScalingElement {
         return percentY;
     }
 
-    public float getTargetScreenWidth() {
+    public int getTargetScreenWidth() {
         return targetScreenWidth;
     }
 
-    public float getTargetScreenHeight() {
+    public int getTargetScreenHeight() {
         return targetScreenHeight;
+    }
+
+    @Nullable
+    public Anchor getAnchor() {
+        return anchor;
+    }
+
+    public static final class Anchor extends ScalingElement {
+        public Anchor(int alignment, int targetScreenWidth, int targetScreenHeight) {
+            super(0f, 0f, 0f, 0f, targetScreenWidth, targetScreenHeight, alignment);
+
+            float x = Align.isLeft(alignment) ? 0f :
+                    Align.isCenterHorizontal(alignment) ? targetScreenWidth / 2f :
+                            Align.isRight(alignment) ? targetScreenWidth : 0f;
+            float y = Align.isBottom(alignment) ? 0f :
+                    Align.isCenterVertical(alignment) ? targetScreenHeight / 2f :
+                            Align.isTop(alignment) ? targetScreenHeight : 0f;
+
+            setTargetPosition(x, y);
+        }
+
+        @Override
+        protected void resize(float newX, float newY, float newWidth, float newHeight,
+                              float newScale) {
+            // Intentionally empty
+        }
     }
 }
