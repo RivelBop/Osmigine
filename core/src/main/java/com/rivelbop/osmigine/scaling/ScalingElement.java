@@ -258,16 +258,14 @@ public abstract class ScalingElement {
 
     public static final class Anchor extends ScalingElement {
         public Anchor(int alignment, int targetScreenWidth, int targetScreenHeight) {
-            super(0f, 0f, 0f, 0f, targetScreenWidth, targetScreenHeight, alignment);
-
-            float x = Align.isLeft(alignment) ? 0f :
-                    Align.isCenterHorizontal(alignment) ? targetScreenWidth / 2f :
-                            Align.isRight(alignment) ? targetScreenWidth : 0f;
-            float y = Align.isBottom(alignment) ? 0f :
-                    Align.isCenterVertical(alignment) ? targetScreenHeight / 2f :
-                            Align.isTop(alignment) ? targetScreenHeight : 0f;
-
-            setTargetPosition(x, y);
+            super(
+                    Align.isLeft(alignment) ? 0f :
+                            Align.isCenterHorizontal(alignment) ? targetScreenWidth / 2f :
+                                    Align.isRight(alignment) ? targetScreenWidth : 0f,
+                    Align.isBottom(alignment) ? 0f :
+                            Align.isCenterVertical(alignment) ? targetScreenHeight / 2f :
+                                    Align.isTop(alignment) ? targetScreenHeight : 0f,
+                    0f, 0f, targetScreenWidth, targetScreenHeight, alignment);
         }
 
         @Override
