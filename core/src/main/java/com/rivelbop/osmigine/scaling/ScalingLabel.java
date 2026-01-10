@@ -39,9 +39,12 @@ public final class ScalingLabel extends ScalingElement {
         Matrix4 newMatrix = batch.getTransformMatrix();
         oldMatrix.set(newMatrix);
 
+        // Use matrix manipulation to change font scale instead of directly
         newMatrix.scale(scale, scale, 1f);
         batch.setTransformMatrix(newMatrix);
 
+        // Prevents "jittering" when resizing
+        // Stored to reset back to default since font is global
         boolean wasInt = font.usesIntegerPositions();
         font.setUseIntegerPositions(false);
 
