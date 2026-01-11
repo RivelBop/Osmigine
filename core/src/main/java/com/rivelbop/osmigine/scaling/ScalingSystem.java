@@ -1,6 +1,7 @@
 package com.rivelbop.osmigine.scaling;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
@@ -61,6 +62,13 @@ public final class ScalingSystem {
         }
     }
 
+    /** Applies the ScreenViewport globally and sets the projection matrix for the sprite batch */
+    public void apply(SpriteBatch spriteBatch) {
+        viewport.apply(true);
+        spriteBatch.setProjectionMatrix(viewport.getCamera().combined);
+    }
+
+    /** Applies the ScreenViewport globally only */
     public void apply() {
         viewport.apply(true);
     }
