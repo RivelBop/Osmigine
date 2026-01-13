@@ -22,6 +22,12 @@ The following is provided by Osmigine and works for both Android and Desktop:
   * Handles previously mentioned systems for you and provides easy access to them
   * Handles screen disposal and screen-clearing for you
   * Built-in tick-rate system (choose to render, tick, or both!)
+* `ScalingSystem`, `ScalingElement`, `ScalingSprite`, `ScalingLabel`
+  * Used to handle scaling UI systems using a target screen dimension.
+  * Create your own elements via `ScalingElement` or use the pre-built options.
+  * Pin any element to an anchor or use percentage-based positioning.
+  * `ScalingSprite` allows you to automatically scale any texture provided to it.
+  * `ScalingLabel` efficiently handles scaling your text via a `BitmapFont`.
 * And More! (WIP)
 
 ## Generate New Project
