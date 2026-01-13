@@ -10,6 +10,7 @@ import com.rivelbop.osmigine.input.ControllerSystem;
 import com.rivelbop.osmigine.input.CursorProvider;
 import com.rivelbop.osmigine.input.InputMap;
 import com.rivelbop.osmigine.input.InputSystem;
+import com.rivelbop.osmigine.scaling.ScalingSystem;
 import de.eskalon.commons.core.ManagedGame;
 import de.eskalon.commons.screen.transition.ScreenTransition;
 
@@ -31,12 +32,19 @@ public abstract class SceneManager<I, S extends Enum<S> & SoundAsset,
     protected Class<S> soundClass;
     protected Class<M> musicClass;
 
-    private final CursorProvider cursorProvider;
+    protected ScalingSystem scaling;
 
-    public SceneManager(CursorProvider cursorProvider, Class<S> soundClass, Class<M> musicClass) {
+    private final CursorProvider cursorProvider;
+    private final int initialTargetScreenWidth;
+    private final int initialTargetScreenHeight;
+
+    public SceneManager(CursorProvider cursorProvider, Class<S> soundClass, Class<M> musicClass,
+                        int targetScreenWidth, int targetScreenHeight) {
         this.cursorProvider = cursorProvider;
         this.soundClass = soundClass;
         this.musicClass = musicClass;
+        this.initialTargetScreenWidth = targetScreenWidth;
+        this.initialTargetScreenHeight = targetScreenHeight;
     }
 
     /** Replacement for create() method. */
@@ -78,6 +86,8 @@ public abstract class SceneManager<I, S extends Enum<S> & SoundAsset,
         assets.finishLoading();
         audio.loadFromAssets(assets);
 
+        scaling = new ScalingSystem(initialTargetScreenWidth, initialTargetScreenHeight);
+
         init();
     }
 
@@ -90,6 +100,15 @@ public abstract class SceneManager<I, S extends Enum<S> & SoundAsset,
         inputs.postRender();
         controllers.postRender();
         audio.postRender();
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        if (width == 0 || height == 0) {
+            return;
+        }
+        scaling.resize(width, height);       // Update the scaling system
+        screenManager.resize(width, height); // Update the current scene
     }
 
     /** CALL super.dispose() IF OVERRIDE! */
@@ -125,5 +144,9 @@ public abstract class SceneManager<I, S extends Enum<S> & SoundAsset,
 
     public AudioSystem<S, M> audio() {
         return audio;
+    }
+
+    public ScalingSystem scaling() {
+        return scaling;
     }
 }

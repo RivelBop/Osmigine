@@ -10,6 +10,7 @@ import com.rivelbop.osmigine.audio.SoundAsset;
 import com.rivelbop.osmigine.input.ControllerSystem;
 import com.rivelbop.osmigine.input.InputMap;
 import com.rivelbop.osmigine.input.InputSystem;
+import com.rivelbop.osmigine.scaling.ScalingSystem;
 import de.eskalon.commons.screen.ManagedScreen;
 
 /**
@@ -27,6 +28,7 @@ public abstract class Scene<I, S extends Enum<S> & SoundAsset,
     protected final SpriteBatch spriteBatch;
     protected final InputMap<I> inputMap;
     protected final AudioSystem<S, M> audio;
+    protected final ScalingSystem scaling;
 
     // Private - force user to use a mapping system for better future-proofing
     private final InputSystem inputs;
@@ -53,6 +55,7 @@ public abstract class Scene<I, S extends Enum<S> & SoundAsset,
         spriteBatch = sceneManager.spriteBatch;
         inputMap = sceneManager.inputMap;
         audio = sceneManager.audio;
+        scaling = sceneManager.scaling;
 
         inputs = sceneManager.inputs;
         controllers = sceneManager.controllers;
