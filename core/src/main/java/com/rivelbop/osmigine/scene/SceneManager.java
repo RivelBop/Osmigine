@@ -38,9 +38,17 @@ public abstract class SceneManager<I, S extends Enum<S> & SoundAsset,
     private final int initialTargetScreenWidth;
     private final int initialTargetScreenHeight;
 
+    /** Uses the default CursorProvider. */
+    public SceneManager(Class<S> soundClass, Class<M> musicClass, int targetScreenWidth,
+                        int targetScreenHeight) {
+        this(null, soundClass, musicClass, targetScreenWidth, targetScreenHeight);
+    }
+
+    /** If CursorProvider is null, the default provider will be used. */
     public SceneManager(CursorProvider cursorProvider, Class<S> soundClass, Class<M> musicClass,
                         int targetScreenWidth, int targetScreenHeight) {
-        this.cursorProvider = cursorProvider;
+        this.cursorProvider =
+                (cursorProvider != null) ? cursorProvider : new CursorProvider.Default();
         this.soundClass = soundClass;
         this.musicClass = musicClass;
         this.initialTargetScreenWidth = targetScreenWidth;
