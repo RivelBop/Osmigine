@@ -4,6 +4,7 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import com.badlogic.gdx.utils.Os;
 import com.badlogic.gdx.utils.SharedLibraryLoader;
+import com.esotericsoftware.kryonet.UdpConnection;
 import com.rivelbop.osmigine.Osmigine;
 import com.rivelbop.osmigine.input.GlfwCursorProvider;
 
@@ -15,6 +16,7 @@ public class Lwjgl3Launcher {
     }
 
     private static Lwjgl3Application createApplication() {
+        UdpConnection.androidFixDisabled = true; // Speed up connection time on Desktop
         return new Lwjgl3Application(new Osmigine(new GlfwCursorProvider()), getDefaultConfiguration());
     }
 
