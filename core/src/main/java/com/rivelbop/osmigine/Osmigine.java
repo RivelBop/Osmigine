@@ -18,20 +18,20 @@ import com.rivelbop.osmigine.scene.SceneManager;
 
 /** DON'T COPY THIS CLASS (EXAMPLE ONLY) - TYPICALLY ENUM USED INSTEAD OF STRING */
 public final class Osmigine extends SceneManager<String, Sounds, Tracks> {
+    public static final int HEIGHT = 720;
+    public static final int WIDTH = HEIGHT * 16/9;
+
     public Osmigine() {
         // Creates a SceneManager with the default cursor provider (non-precise cursor position ->
-        // polling), uses the example Sounds and Tracks enums for the AudioSystem, the
-        // ScalingSystem has a target screen width and height of 640x480 (the default parameters ->
-        // from the LWJGL3 Launcher)
-        super(new CursorProvider.Default(), Sounds.class, Tracks.class, 640, 480);
+        // polling), uses the example Sounds and Tracks enums for the AudioSystem
+        super(new CursorProvider.Default(), Sounds.class, Tracks.class, WIDTH, HEIGHT);
     }
 
     /** CALL FOR LWJGL3 */
     public Osmigine(CursorProvider cursorProvider) {
         // Creates a SceneManager with the provided cursor provider (see LWJGL3 Launcher parameter),
-        // uses the example Sounds and Tracks enums for the AudioSystem, the ScalingSystem has a
-        // target screen width and height of 640x480 (the default params from the LWJGL3 Launcher)
-        super(cursorProvider, Sounds.class, Tracks.class, 640, 480);
+        // uses the example Sounds and Tracks enums for the AudioSystem
+        super(cursorProvider, Sounds.class, Tracks.class, WIDTH, HEIGHT);
     }
 
     @Override
