@@ -2,7 +2,11 @@ package com.rivelbop.osmigine.scene;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.rivelbop.osmigine.audio.AudioSystem;
 import com.rivelbop.osmigine.audio.MusicAsset;
 import com.rivelbop.osmigine.audio.SoundAsset;
@@ -13,6 +17,7 @@ import com.rivelbop.osmigine.input.InputSystem;
 import com.rivelbop.osmigine.scaling.ScalingSystem;
 import de.eskalon.commons.core.ManagedGame;
 import de.eskalon.commons.screen.transition.ScreenTransition;
+import space.earlygrey.shapedrawer.ShapeDrawer;
 
 /**
  * @param <I> The class type for InputMap keys.
@@ -23,6 +28,7 @@ public abstract class SceneManager<I, S extends Enum<S> & SoundAsset,
         M extends Enum<M> & MusicAsset> extends ManagedGame<Scene<I, S, M>, ScreenTransition> {
     protected AssetManager assets;
     protected SpriteBatch spriteBatch;
+    protected ShapeDrawer shapeDrawer;
 
     protected InputSystem inputs;
     protected ControllerSystem controllers;
@@ -37,6 +43,8 @@ public abstract class SceneManager<I, S extends Enum<S> & SoundAsset,
     private final CursorProvider cursorProvider;
     private final int initialTargetScreenWidth;
     private final int initialTargetScreenHeight;
+
+    private Texture shapeDrawerTexture;
 
     /** Uses the default CursorProvider. */
     public SceneManager(Class<S> soundClass, Class<M> musicClass, int targetScreenWidth,
@@ -83,6 +91,14 @@ public abstract class SceneManager<I, S extends Enum<S> & SoundAsset,
 
         assets = new AssetManager();
         spriteBatch = new SpriteBatch();
+
+        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pixmap.setColor(Color.WHITE);
+        pixmap.drawPixel(0, 0);
+        shapeDrawerTexture = new Texture(pixmap);
+        pixmap.dispose();
+        TextureRegion region = new TextureRegion(shapeDrawerTexture, 0, 0, 1, 1);
+        shapeDrawer = new ShapeDrawer(spriteBatch, region);
 
         inputs = new InputSystem(cursorProvider, true);
         controllers = new ControllerSystem(true);
@@ -135,6 +151,7 @@ public abstract class SceneManager<I, S extends Enum<S> & SoundAsset,
 
         controllers.dispose();
         inputs.dispose();
+        shapeDrawerTexture.dispose();
         spriteBatch.dispose();
         assets.dispose();
     }
@@ -145,6 +162,10 @@ public abstract class SceneManager<I, S extends Enum<S> & SoundAsset,
 
     public SpriteBatch spriteBatch() {
         return spriteBatch;
+    }
+
+    public ShapeDrawer shapeDrawer() {
+        return shapeDrawer;
     }
 
     public InputSystem inputs() {
