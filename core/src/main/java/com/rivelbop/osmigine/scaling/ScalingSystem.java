@@ -88,6 +88,10 @@ public final class ScalingSystem {
         resize(lastWidth, lastHeight);
     }
 
+    public Viewport getViewport() {
+        return viewport;
+    }
+
     public Matrix4 combined() {
         return viewport.getCamera().combined;
     }
