@@ -12,6 +12,7 @@ import com.rivelbop.osmigine.input.InputMap;
 import com.rivelbop.osmigine.input.InputSystem;
 import com.rivelbop.osmigine.scaling.ScalingSystem;
 import de.eskalon.commons.screen.ManagedScreen;
+import space.earlygrey.shapedrawer.ShapeDrawer;
 
 /**
  * @param <I> The class type for InputMap keys.
@@ -26,13 +27,12 @@ public abstract class Scene<I, S extends Enum<S> & SoundAsset,
     // Easier access to the "necessary" parts of the SceneManager
     protected final AssetManager assets;
     protected final SpriteBatch spriteBatch;
+    protected final ShapeDrawer shapeDrawer;
+    protected final InputSystem inputs;
+    protected final ControllerSystem controllers;
     protected final InputMap<I> inputMap;
     protected final AudioSystem<S, M> audio;
     protected final ScalingSystem scaling;
-
-    // Private - force user to use a mapping system for better future-proofing
-    private final InputSystem inputs;
-    private final ControllerSystem controllers;
 
     private float tickTimer;
     private float alpha;
@@ -53,12 +53,12 @@ public abstract class Scene<I, S extends Enum<S> & SoundAsset,
 
         assets = sceneManager.assets;
         spriteBatch = sceneManager.spriteBatch;
+        shapeDrawer = sceneManager.shapeDrawer;
+        inputs = sceneManager.inputs;
+        controllers = sceneManager.controllers;
         inputMap = sceneManager.inputMap;
         audio = sceneManager.audio;
         scaling = sceneManager.scaling;
-
-        inputs = sceneManager.inputs;
-        controllers = sceneManager.controllers;
 
         this.tickRate = tickRate;
     }
@@ -71,7 +71,7 @@ public abstract class Scene<I, S extends Enum<S> & SoundAsset,
     public abstract void render();
 
     @Override
-    public final void render(float delta) {
+    public void render(float delta) {
         if (tickRate > 0f) {
             tickTimer += delta;
             while (tickTimer >= tickRate) {
@@ -81,7 +81,7 @@ public abstract class Scene<I, S extends Enum<S> & SoundAsset,
                 inputs.postTick();
                 controllers.postTick();
             }
-            alpha = tickTimer / tickRate;
+            alpha = Math.min(tickTimer / tickRate, 1.0f);
         }
         render();
     }
