@@ -107,6 +107,15 @@ public abstract class SceneManager<I, S extends Enum<S> & SoundAsset,
 
         inputs.postRender();
         controllers.postRender();
+
+        // Call post tick when no tick rate to ensure input triggers with onTick can still be
+        // called even in scenes without the tick system
+        Scene<I, S, M> currentScene = screenManager.getCurrentScreen();
+        if (currentScene != null && currentScene.tickRate <= 0f) {
+            inputs.postTick();
+            controllers.postTick();
+        }
+
         audio.postRender();
     }
 
