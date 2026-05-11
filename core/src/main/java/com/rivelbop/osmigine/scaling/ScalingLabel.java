@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.Align;
 
-public final class ScalingLabel extends ScalingElement {
+public class ScalingLabel extends ScalingElement {
     private final Color color = new Color(1f, 1f, 1f, 1f);
     private final Matrix4 oldMatrix = new Matrix4();
     private final GlyphLayout layout = new GlyphLayout();
