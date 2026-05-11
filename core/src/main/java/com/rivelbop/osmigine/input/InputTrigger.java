@@ -6,6 +6,12 @@ import com.badlogic.gdx.controllers.Controllers;
 public abstract class InputTrigger {
     public static final int UNDEFINED = -1;
 
+    // Controller Joystick Directions
+    public static final int JOYSTICK_UP    = -1;
+    public static final int JOYSTICK_LEFT  = -1;
+    public static final int JOYSTICK_RIGHT =  1;
+    public static final int JOYSTICK_DOWN  =  1;
+
     // Desktop
     public int key = UNDEFINED;
     public int mouse = UNDEFINED;
@@ -139,6 +145,7 @@ public abstract class InputTrigger {
                                          int axis);
 
     public static class Pressed extends InputTrigger {
+        /** Should be positive. */
         public float deadZone = 0.12f;
 
         public Pressed() {
@@ -241,7 +248,7 @@ public abstract class InputTrigger {
         }
 
         public Pressed deadZone(float deadZone) {
-            this.deadZone = deadZone;
+            this.deadZone = Math.abs(deadZone);
             return this;
         }
     }
@@ -333,6 +340,110 @@ public abstract class InputTrigger {
         @Override
         public boolean isAxisActive(ControllerSystem controllers, Controller controller, int axis) {
             return false;
+        }
+    }
+
+    /** InputTrigger.Pressed with Axis direction detection (to be used for Joy Sticks). */
+    public static class Axis extends Pressed {
+        /** SHOULD BE -1, 0, 1 */
+        public int axisDirection = 0;
+
+        public Axis() {
+            // Intentionally empty
+        }
+
+        public Axis(int key, int mouse, Mapping button, Mapping axis) {
+            super(key, mouse, button, axis);
+        }
+
+        public Axis(int key, int mouse, Mapping button, Mapping axis,
+                    ControllerSystem controllerSystem, int index) {
+            super(key, mouse, button, axis, controllerSystem, index);
+        }
+
+        public Axis(int key, int mouse, Mapping button, Mapping axis, Controller controller) {
+            super(key, mouse, button, axis, controller);
+        }
+
+        public Axis(int key, int mouse, int button, int axis) {
+            super(key, mouse, button, axis);
+        }
+
+        @Override
+        public boolean isAxisActive(ControllerSystem controllers, Controller controller, int axis) {
+            float val = controllers.getAxisValue(controller, axis);
+            if (axisDirection < 0) {
+                return val < -deadZone;
+            } else if (axisDirection > 0) {
+                return val > deadZone;
+            }
+            return false;
+        }
+
+        public Axis key(int key) {
+            return (Axis) super.key(key);
+        }
+
+        public Axis mouse(int mouse) {
+            return (Axis) super.mouse(mouse);
+        }
+
+        public Axis controller(Mapping button, Mapping axis) {
+            return (Axis) super.controller(button, axis);
+        }
+
+        public Axis controller(Mapping button, Mapping axis,
+                               ControllerSystem controllerSystem, int index) {
+            return (Axis) super.controller(button, axis, controllerSystem, index);
+        }
+
+        public Axis controller(Mapping button, Mapping axis, Controller controller) {
+            return (Axis) super.controller(button, axis, controller);
+        }
+
+        public Axis controller(int button, int axis) {
+            return (Axis) super.controller(button, axis);
+        }
+
+        public Axis button(Mapping button) {
+            return (Axis) super.button(button);
+        }
+
+        public Axis button(Mapping button, ControllerSystem controllerSystem, int index) {
+            return (Axis) super.button(button, controllerSystem, index);
+        }
+
+        public Axis button(Mapping button, Controller controller) {
+            return (Axis) super.button(button, controller);
+        }
+
+        public Axis button(int button) {
+            return (Axis) super.button(button);
+        }
+
+        public Axis axis(Mapping axis) {
+            return (Axis) super.axis(axis);
+        }
+
+        public Axis axis(Mapping axis, ControllerSystem controllerSystem, int index) {
+            return (Axis) super.axis(axis, controllerSystem, index);
+        }
+
+        public Axis axis(Mapping axis, Controller controller) {
+            return (Axis) super.axis(axis, controller);
+        }
+
+        public Axis axis(int axis) {
+            return (Axis) super.axis(axis);
+        }
+
+        public Axis deadZone(float deadZone) {
+            return (Axis) super.deadZone(deadZone);
+        }
+
+        public Axis axisDirection(int direction) {
+            axisDirection = Integer.compare(direction, 0);
+            return this;
         }
     }
 }
